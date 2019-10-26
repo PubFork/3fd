@@ -185,7 +185,7 @@ namespace broker
 
         core::Logger::Write(oss.str(), core::Logger::PRIO_INFORMATION);
     }
-    catch (Poco::Data::DataException &ex)
+    catch (Poco::Data::SQLException &ex)
     {
         CALL_STACK_TRACE;
         std::ostringstream oss;
@@ -264,7 +264,7 @@ namespace broker
 
             m_messages.reserve(msgCountStepLimit);
         }
-        catch (Poco::Data::DataException &ex)
+        catch (Poco::Data::SQLException &ex)
         {
             CALL_STACK_TRACE;
             std::ostringstream oss;
@@ -317,7 +317,7 @@ namespace broker
             {
                 core::Logger::Write(ex, core::Logger::PRIO_CRITICAL);
             }
-            catch (Poco::Data::DataException &ex)
+            catch (Poco::Data::SQLException &ex)
             {
                 std::ostringstream oss;
                 oss << "Failed to end transaction reading messages from broker queue. "
@@ -520,7 +520,7 @@ namespace broker
                 m_dbSession.rollback();
                 return true;
             }
-            catch (Poco::Data::DataException &ex)
+            catch (Poco::Data::SQLException &ex)
             {
                 std::ostringstream oss;
                 oss << "Failed to rollback transaction reading messages from broker queue. "
@@ -563,7 +563,7 @@ namespace broker
                 m_dbSession.commit();
                 return true;
             }
-            catch (Poco::Data::DataException &ex)
+            catch (Poco::Data::SQLException &ex)
             {
                 std::ostringstream oss;
                 oss << "Failed to commit transaction reading messages from broker queue. "
