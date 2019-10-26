@@ -71,11 +71,6 @@ namespace core
     /// <returns>A string which shows the current stack trace.</returns>
     string CallStack::GetReport()
     {
-#       ifdef _3FD_PLATFORM_WINRT
-        const char *newLine = "\n";
-#       else
-        const char *newLine = "\r\n";
-#       endif
         std::ostringstream oss;
 
         for(int index = 0 ; index < m_stackFrames.size() ; ++index)
@@ -84,7 +79,7 @@ namespace core
 
             oss << "$ " << GetFileName(frame.file)
                 << " (" << frame.line << ") @ " << frame.function
-                << newLine;
+                << _newLine_;
         }
 
         return oss.str();

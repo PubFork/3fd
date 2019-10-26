@@ -10,8 +10,6 @@
 #include <fstream>
 #include <functional>
 
-#define SKIP_LINE "\r\n"
-
 namespace _3fd
 {
 namespace web
@@ -388,8 +386,6 @@ namespace wws
         string &serviceName,
         std::vector<SvcEndpointInfo> &endpointsInfo)
     {
-        using namespace Poco;
-
         CALL_STACK_TRACE;
 
         try
@@ -419,9 +415,9 @@ namespace wws
                                 &nsResolver))
             {
                 std::ostringstream oss;
-                oss << "Could not match XML query looking for" SKIP_LINE SKIP_LINE;
+                oss << "Could not match XML query looking for" _newLine_ _newLine_;
                 query->SerializeTo(2, oss);
-                oss << SKIP_LINE "where:" SKIP_LINE;
+                oss << _newLine_ "where:" _newLine_ _newLine_;
                 nsResolver.SerializeTo(0, oss);
 
                 throw AppException<std::runtime_error>("Web service definition is not compliant", oss.str());
@@ -460,9 +456,9 @@ namespace wws
                 {
                     std::ostringstream oss;
                     oss << "Port for service '" << serviceName
-                        << "' could not match XML query looking for" SKIP_LINE SKIP_LINE;
+                        << "' could not match XML query looking for" _newLine_ _newLine_;
                     query->SerializeTo(2, oss);
-                    oss << SKIP_LINE "where:" SKIP_LINE;
+                    oss << _newLine_ "where:" _newLine_ _newLine_;
                     nsResolver.SerializeTo(0, oss);
 
                     throw AppException<std::runtime_error>("Web service definition is not compliant", oss.str());

@@ -231,9 +231,6 @@
     <ClCompile Include="isam_impl_cursor.cpp">
       <Filter>Source Files\ISAM</Filter>
     </ClCompile>
-    <ClCompile Include="logger_poco.cpp">
-      <Filter>Source Files\core</Filter>
-    </ClCompile>
     <ClCompile Include="opencl_impl.cpp">
       <Filter>Source Files\OpenCL</Filter>
     </ClCompile>
@@ -371,6 +368,9 @@
     </ClCompile>
     <ClCompile Include="xml.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="logger_dsa.cpp">
+      <Filter>Source Files\core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

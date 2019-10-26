@@ -9,12 +9,15 @@
 
 #include "logger.h"
 #include "configuration.h"
-#include <iostream>
-#include <codecvt>
-#include <stack>
+#include "callstacktracer.h"
+
 #include <array>
+#include <codecvt>
 #include <chrono>
 #include <ctime>
+#include <future>
+#include <iostream>
+#include <stack>
 
 namespace _3fd
 {
@@ -28,10 +31,7 @@ namespace core
     /// </summary>
     /// <param name="message">The message.</param>
     void AttemptConsoleOutput(const string &message)
-    {/* As standard procedure in this framework, exceptions thrown inside destructors are swallowed and logged.
-        So, when this functions is invoked, exceptions cannot be forwarded up in the stack, because the original
-        caller might be a destructor. The 'catch' clause below attempts to output the event in the console (if
-        available). */
+    {
 #ifdef _3FD_CONSOLE_AVAILABLE
         using namespace std::chrono;
         std::array<char, 21> buffer;
@@ -41,6 +41,61 @@ namespace core
 #endif
     }
 
+    /// <summary>
+    /// Prepares the log event string.
+    /// </summary>
+    /// <param name="oss">The file stream output.</param>
+    /// <param name="timestamp">The event timestamp.</param>
+    /// <param name="prio">The event priority.</param>
+    /// <returns>A reference to the string stream output.</returns>
+    std::ofstream &PrepareEventString(std::ofstream &ofs, time_t timestamp, Logger::Priority prio)
+    {
+        static const auto pid = GetCurrentProcessId();
+        std::array<char, 21> buffer;
+        strftime(buffer.data(), buffer.size(), "%Y-%b-%d %H:%M:%S", localtime(&timestamp));
+        ofs << buffer.data() << " [process " << pid;
+
+        switch (prio)
+        {
+        case Logger::PRIO_FATAL:
+            ofs << "] - FATAL - ";
+            break;
+
+        case Logger::PRIO_CRITICAL:
+            ofs << "] - CRITICAL - ";
+            break;
+
+        case Logger::PRIO_ERROR:
+            ofs << "] - ERROR - ";
+            break;
+
+        case Logger::PRIO_WARNING:
+            ofs << "] - WARNING - ";
+            break;
+
+        case Logger::PRIO_NOTICE:
+            ofs << "] - NOTICE - ";
+            break;
+
+        case Logger::PRIO_INFORMATION:
+            ofs << "] - INFORMATION - ";
+            break;
+
+        case Logger::PRIO_DEBUG:
+            ofs << "] - DEBUG - ";
+            break;
+
+        case Logger::PRIO_TRACE:
+            ofs << "] - TRACE - ";
+            break;
+
+        default:
+            break;
+        }
+
+        return ofs;
+    }
+
     //////////////////////////////
     // Logger Class
     //////////////////////////////
@@ -48,6 +103,32 @@ namespace core
     Logger * Logger::uniqueObjectPtr(nullptr);
 
     std::mutex Logger::singleInstanceCreationMutex;
+
+    /// <summary>
+    /// Gets the unique instance of the singleton <see cref="Logger" /> class.
+    /// </summary>
+    /// <returns>A pointer to the singleton.</returns>
+    Logger * Logger::GetInstance() noexcept
+    {
+        if (uniqueObjectPtr != nullptr)
+            return uniqueObjectPtr;
+
+        try
+        {
+            CreateInstance(AppConfig::GetApplicationId(),
+                AppConfig::GetSettings().common.log.writeToConsole);
+        }
+        catch (IAppException &appEx)
+        {
+#ifndef _3FD_PLATFORM_WINRT_UWP
+            std::ostringstream oss;
+            oss << "The logging facility creation failed with an exception - " << appEx.ToString();
+            AttemptConsoleOutput(oss.str());
+#endif      // swallow exception (caller might be a destructor)
+        }
+
+        return uniqueObjectPtr;
+    }
 
     /// <summary>
     /// Creates the unique instance of the <see cref="Logger" /> class.
@@ -66,11 +147,11 @@ namespace core
         }
         catch(std::system_error &ex)
         {
-            throw core::AppException<std::runtime_error>(core::StdLibExt::GetDetailsFromSystemError(ex));
+            throw AppException<std::runtime_error>(StdLibExt::GetDetailsFromSystemError(ex));
         }
         catch(std::bad_alloc &xa)
         {
-            throw core::AppException<std::runtime_error>(xa.what());
+            throw AppException<std::runtime_error>(xa.what());
         }
     }
 
@@ -89,10 +170,71 @@ namespace core
                 uniqueObjectPtr = nullptr;
             }
         }
-        catch (std::system_error)
+        catch (std::system_error &ex)
         {/* DO NOTHING: SWALLOW EXCEPTION
             This method cannot throw an exception because it could have been originally
             invoked by a destructor. When that happens, memory leaks are expected. */
+            std::ostringstream oss;
+            oss << "System error when shutting down the logger: " << StdLibExt::GetDetailsFromSystemError(ex);
+            AttemptConsoleOutput(oss.str());
+        }
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Logger"/> class.
+    /// </summary>
+    /// <param name="id">The application ID.</param>
+    /// <param name="logToConsole">Whether log output should be redirected to the console. Because a store app does not have an available console, this parameter is ignored.</param>
+    Logger::Logger(const string &id, bool logToConsole)
+        : m_fileAccess(GetFileAccess(id))
+#ifdef NDEBUG
+        , m_prioThreshold(PRIO_INFORMATION)
+#else
+        , m_prioThreshold(PRIO_DEBUG)
+#endif
+    {
+        try
+        {
+            m_logWriterThread.swap(std::thread(&Logger::LogWriterThreadProc, this));
+        }
+        catch (std::system_error &ex)
+        {/* DO NOTHING: SWALLOW EXCEPTION
+            Even when the set-up of the logger fails, the application must continue
+            to execute, because the logger is merely an auxiliary service. */
+            std::ostringstream oss;
+            oss << "System error when setting up the logger: " << StdLibExt::GetDetailsFromSystemError(ex);
+            AttemptConsoleOutput(oss.str());
+            m_fileAccess.reset();
+        }
+    }
+
+    /// <summary>
+    /// Finalizes an instance of the <see cref="Logger"/> class.
+    /// </summary>
+    Logger::~Logger()
+    {
+        try
+        {
+            // Signalizes termination for the message loop
+            m_terminationEvent.Signalize();
+
+            if (m_logWriterThread.joinable())
+                m_logWriterThread.join();
+
+            _ASSERTE(m_eventsQueue.IsEmpty());
+
+            while (!m_eventsQueue.IsEmpty())
+                delete m_eventsQueue.Remove();
+        }
+        catch (std::system_error &ex)
+        {
+            std::ostringstream oss;
+            oss << "System error when finalizing the logger: " << StdLibExt::GetDetailsFromSystemError(ex);
+            AttemptConsoleOutput(oss.str());
+        }
+        catch (...)
+        {
+            AttemptConsoleOutput("Unexpected exception was caught when finalizing the logger");
         }
     }
 
@@ -157,9 +299,137 @@ namespace core
     /// <param name="message">The message to log.</param>
     /// <param name="prio">The priority of the message.</param>
     /// <param name="cst">When set to <c>true</c>, append the call stack trace.</param>
-    void Logger::WriteImpl(string &&message, Priority prio, bool cst) NOEXCEPT
+    void Logger::WriteImpl(string &&message, Priority prio, bool cst) noexcept
     {
         WriteImpl(std::move(message), string(""), prio, cst);
+    }
+
+    /// <summary>
+    /// Writes a message and its details to the log output.
+    /// </summary>
+    /// <param name="what">The reason for the message.</param>
+    /// <param name="details">The message details.</param>
+    /// <param name="prio">The priority for the message.</param>
+    /// <param name="cst">When set to <c>true</c>, append the call stack trace.</param>
+    void Logger::WriteImpl(string &&what, string &&details, Priority prio, bool cst) noexcept
+    {
+        if (!m_fileAccess)
+            return;
+
+        try
+        {
+            using namespace std::chrono;
+
+            auto now = system_clock::to_time_t(system_clock::now());
+            auto logEvent = std::make_unique<LogEvent>(now, prio, std::move(what));
+
+#    ifdef ENABLE_3FD_ERR_IMPL_DETAILS
+            if (details.empty() == false)
+                logEvent->details = std::move(details);
+#    endif
+#    ifdef ENABLE_3FD_CST
+            if (cst && CallStackTracer::IsReady())
+                logEvent->trace = CallStackTracer::GetStackReport();
+#    endif
+            m_eventsQueue.Add(logEvent.release()); // enqueue the request to write this event to the log file
+        }
+        catch (std::bad_alloc &)
+        {
+            AttemptConsoleOutput("Failed to write in log output. Could not allocate memory!");
+            // swallow exception
+        }
+        catch (std::exception &ex)
+        {
+            std::ostringstream oss;
+            oss << "Failed to write in log output. An exception had to be swallowed: " << ex.what();
+            AttemptConsoleOutput(oss.str());
+            // swallow exception
+        }
+    }
+
+    /// <summary>
+    /// Estimates the room left in the log file for more events.
+    /// </summary>
+    /// <param name="logFileAccess">Provides access to the log file.</param>
+    /// <returns>The estimate, which is positive when there is room left, otherwise, negative.</returns>
+    static long EstimateRoomForLogEvents(ILogFileAccess &logFileAccess)
+    {
+        // Get the file size:
+        auto fileSize = logFileAccess.GetFileSize();
+
+#    if defined ENABLE_3FD_CST && defined ENABLE_3FD_ERR_IMPL_DETAILS
+        const uint32_t avgLineSize(300);
+#    elif defined ENABLE_3FD_CST
+        const uint32_t avgLineSize(250);
+#    elif defined ENABLE_3FD_ERR_IMPL_DETAILS
+        const uint32_t avgLineSize(150);
+#    else
+        const uint32_t avgLineSize(100);
+#    endif
+        // Estimate the amount of events for which there is still room left in the log file:
+        return static_cast<long> (
+            (AppConfig::GetSettings().common.log.sizeLimit * 1024 - fileSize) / avgLineSize
+        );
+    }
+
+    /// <summary>
+    /// The procedure executed by the log writer thread.
+    /// </summary>
+    void Logger::LogWriterThreadProc()
+    {
+        try
+        {
+            std::ofstream ofs;
+            m_fileAccess->OpenStream(ofs);
+
+            bool terminate(false);
+
+            do
+            {
+                // Wait for queued messages:
+                terminate = m_terminationEvent.WaitFor(100);
+
+                // Write the queued messages in the text log file:
+                long estimateRoomForLogEvents(0);
+                while (!m_eventsQueue.IsEmpty())
+                {
+                    std::unique_ptr<LogEvent> ev(m_eventsQueue.Remove());
+
+                    PrepareEventString(ofs, ev->time, ev->prio) << ev->what; // add the main details and message
+#   ifdef ENABLE_3FD_ERR_IMPL_DETAILS
+                    if (ev->details.empty() == false) // add the details
+                        ofs << " - " << ev->details;
+#   endif
+#   ifdef ENABLE_3FD_CST
+                    if (ev->trace.empty() == false) // add the call stack trace
+                        ofs << "### CALL STACK ###\n" << ev->trace;
+#   endif
+                    ofs << std::endl << std::flush; // flush the content to the file
+
+                    if (ofs.bad())
+                        throw AppException<std::runtime_error>("Failed to write in the log output file stream");
+
+                    --estimateRoomForLogEvents;
+                }
+
+                // If the log file was supposed to reach its size limit now:
+                if (estimateRoomForLogEvents <= 0)
+                {
+                    // Recalculate estimate for current log file and, if there is no room left, shift to a new one:
+                    estimateRoomForLogEvents = EstimateRoomForLogEvents(*m_fileAccess);
+                    if (estimateRoomForLogEvents < 0)
+                    {
+                        m_fileAccess->ShiftToNewLogFile(ofs);
+                        estimateRoomForLogEvents = EstimateRoomForLogEvents(*m_fileAccess);
+                    }
+                }
+
+            } while (!terminate);
+        }
+        catch (...)
+        {
+            // TO DO: transport exception
+        }
     }
 
 }// end of namespace core

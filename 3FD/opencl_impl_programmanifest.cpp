@@ -3,8 +3,6 @@
 #include "callstacktracer.h"
 #include "xml.h"
 
-#define SKIP_LINE "\r\n"
-
 namespace _3fd
 {
 namespace opencl
@@ -179,7 +177,7 @@ namespace opencl
             if (!query->Execute(rootNode, xml::QueryStrategy::TestsOnlyGivenElement))
             {
                 std::ostringstream oss;
-                oss << "Could not match XML query looking for" SKIP_LINE SKIP_LINE;
+                oss << "Could not match XML query looking for" _newLine_ _newLine_;
                 query->SerializeTo(2, oss);
                 throw core::AppException<std::runtime_error>("XML manifest of OpenCL program is not compliant", oss.str());
             }
@@ -203,7 +201,8 @@ namespace opencl
                 {
                     std::ostringstream oss;
                     oss << "Could not load invalid definition of OpenCL device for program '" << manifest.m_programName
-                        << "' from manifest." SKIP_LINE "Failed to match XML query looking for" SKIP_LINE SKIP_LINE;
+                        << "' from manifest." _newLine_
+                           "Failed to match XML query looking for" _newLine_ _newLine_;
 
                     query->SerializeTo(2, oss);
                     throw core::AppException<std::runtime_error>("XML manifest for OpenCL proram has unexpected format", oss.str());

@@ -1,18 +1,15 @@
-#ifndef LOGGER_H
-#define LOGGER_H
+#ifndef _3FD_LOGGER_H
+#define _3FD_LOGGER_H
 
-#include "base.h"
 #include "exceptions.h"
-#include <string>
+#include "utils.h"
+#include "utils_lockfreequeue.h"
+#include <cinttypes>
+#include <fstream>
+#include <memory>
 #include <mutex>
-
-#ifdef _3FD_POCO_SUPPORT
-#    include <Poco/Logger.h>
-#    include <Poco/Message.h>
-#elif defined _3FD_PLATFORM_WINRT
-#    include "utils.h"
-#    include <thread>
-#endif
+#include <string>
+#include <thread>
 
 namespace _3fd
 {
@@ -23,9 +20,35 @@ namespace core
     void AttemptConsoleOutput(const string &message);
 
     /// <summary>
+    /// Common interface (POSIX/Win32/WinRT) for file access.
+    /// </summary>
+    class INTFOPT ILogFileAccess
+    {
+    public:
+
+        virtual ~ILogFileAccess() = default;
+
+        /// <summary>
+        /// Opens the log file stream for writing (append).
+        /// </summary>
+        /// <param name="ofs">The file output stream.</param>
+        virtual void OpenStream(std::ofstream &ofs) = 0;
+
+        /// <summary>
+        /// Switches log stream to a new file.
+        /// </summary>
+        /// <param name="ofs">Will receive an output stream to the new file.</param>
+        virtual void ShiftToNewLogFile(std::ofstream &ofs) = 0;
+
+        virtual uint64_t GetFileSize() const = 0;
+    };
+
+    std::unique_ptr<ILogFileAccess> GetFileAccess(const string &loggerId);
+
+    /// <summary>
     /// Implements a logging facility.
     /// </summary>
-    class Logger : notcopiable
+    class Logger
     {
     public:
 
@@ -45,11 +68,6 @@ namespace core
         };
 
     private:
-
-#ifdef _3FD_POCO_SUPPORT
-        Poco::Logger *m_logger;
-
-#elif defined _3FD_PLATFORM_WINRT
 
         /// <summary>
         /// Represents a queued log event.
@@ -86,12 +104,13 @@ namespace core
 
         utils::Event m_terminationEvent;
 
-        utils::Win32ApiWrappers::LockFreeQueue<LogEvent> m_eventsQueue;
+        utils::LockFreeQueue<LogEvent> m_eventsQueue;
 
-        Windows::Storage::StorageFile ^m_txtLogFile;
+        std::unique_ptr<ILogFileAccess> m_fileAccess;
+
+        Priority m_prioThreshold;
 
         void LogWriterThreadProc();
-#endif
 
         Logger(const string &id, bool logToConsole);
 
@@ -103,7 +122,7 @@ namespace core
 
         static void CreateInstance(const string &id, bool logToConsole);
 
-        static Logger *GetInstance() NOEXCEPT;
+        static Logger *GetInstance() noexcept;
 
         // Private implementations:
 
@@ -112,13 +131,15 @@ namespace core
 #if defined _3FD_PLATFORM_WIN32API || defined _3FD_PLATFORM_WINRT_UWP
         void WriteImpl(HRESULT hr, const char *message, const char *function, Priority prio);
 #endif
-        void WriteImpl(string &&message, Priority prio, bool cst) NOEXCEPT;
+        void WriteImpl(string &&message, Priority prio, bool cst) noexcept;
 
-        void WriteImpl(string &&what, string &&details, Priority prio, bool cst) NOEXCEPT;
+        void WriteImpl(string &&what, string &&details, Priority prio, bool cst) noexcept;
 
     public:
 
         static void Shutdown();
+
+        Logger(const Logger &) = delete;
 
         ~Logger();
 
@@ -166,7 +187,7 @@ namespace core
         /// <param name="message">The message to log.</param>
         /// <param name="prio">The priority of the message.</param>
         /// <param name="cst">When set to <c>true</c>, append the call stack trace.</param>
-        static void Write(string &&message, Priority prio, bool cst = false) NOEXCEPT
+        static void Write(string &&message, Priority prio, bool cst = false) noexcept
         {
             Logger * const singleton = GetInstance();
             if (singleton != nullptr)
@@ -199,7 +220,9 @@ namespace core
                 singleton->WriteImpl(std::move(what), std::move(details), prio, cst);
         }
     };
-        
+
+    std::ofstream &PrepareEventString(std::ofstream &ofs, time_t timestamp, Logger::Priority prio);
+
     /// <summary>
     /// Writes a message to the log upon end of scope, appending a
     /// given suffix for success or failure depending on the situation.

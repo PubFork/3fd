@@ -286,24 +286,24 @@ namespace xml
 
             if (!subQueries.empty())
             {
-                out << ">\r\n";
+                out << ">" _newLine_;
 
                 for (auto &subQuery : subQueries)
                 {
                     if (subQuery->GetType() == XmlQueryNode::NodeType::Element)
                         subQuery->SerializeTo(indentation + 2, out);
                 }
+
+                out << GetIndentation(indentation).data() << "</" << name << ">" _newLine_;
             }
             else
             {
-                out << "...";
+                out << ">...</" << name << ">" _newLine_;
             }
-
-            out << GetIndentation(indentation).data() << "</" << name << ">\r\n";
         }
         catch (std::exception &ex)
         {
-            out << "Secondary failure during attempt to serialize XML query: " << ex.what() << "!\r\n";
+            out << "Secondary failure during attempt to serialize XML query: " << ex.what() << "!" _newLine_;
         }
     }
     
@@ -626,31 +626,32 @@ namespace xml
 
             out << indentationString.data()
                 << '[' << m_namespacesByPrefixInDoc.size()
-                << " namespaces loaded from document]\r\n";
+                << " namespaces loaded from document]" _newLine_;
 
             for (auto &pair : m_namespacesByPrefixInDoc)
             {
                 const std::string &prefix = pair.first;
                 const std::string &ns = pair.second;
 
-                out << indentationString.data() << prefix << " = " << ns << "\r\n";
+                out << indentationString.data() << prefix << " = " << ns << _newLine_;
             }
 
             out << indentationString.data()
-                << '[' << m_namespacesByPrefixAlias.size()
-                << " defined aliases for namespaces]\r\n";
+                << _newLine_ "[" << m_namespacesByPrefixAlias.size()
+                << " defined aliases for namespaces]" _newLine_;
 
             for (auto &pair : m_namespacesByPrefixAlias)
             {
                 const std::string &prefix = pair.first;
                 const std::string &ns = pair.second;
 
-                out << indentationString.data() << prefix << " = " << ns << "\r\n";
+                out << indentationString.data() << prefix << " = " << ns << _newLine_;
             }
         }
         catch (std::exception &ex)
         {
-            out << "Secondary failure during attempt to serialize content of resolver for XML namespaces: " << ex.what() << "!\r\n";
+            out << "Secondary failure during attempt to serialize content of resolver for XML namespaces: "
+                << ex.what() << "!" _newLine_;
         }
     }
     

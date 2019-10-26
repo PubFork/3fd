@@ -33,6 +33,8 @@
 #   ifndef _USING_V110_SDK71_
 #        include <winapifamily.h>
 #   endif
+#   define _newLine_ "\n"
+
 #   if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP || defined _USING_V110_SDK71_
         // Windows Desktop Apps only:
 #       define _3FD_PLATFORM_WIN32API
@@ -63,10 +65,12 @@
 #    define _3FD_POCO_SUPPORT
 #    define _3FD_OPENCL_SUPPORT
 #    define _3FD_CONSOLE_AVAILABLE
+#    define _newLine_ "\r\n"
 
 #elif defined __unix__ // Unix only:
 #    define _3FD_POCO_SUPPORT
 #    define _3FD_CONSOLE_AVAILABLE
+#    define _newLine_ "\r\n"
 #endif
 
 // These instructions have they definition depending on whether this is a release compilation:

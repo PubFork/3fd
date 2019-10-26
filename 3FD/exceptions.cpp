@@ -17,15 +17,25 @@ namespace _3fd
         ///////////////////////////////////////
 
         /// <summary>
+        /// Gets the details from a system error code.
+        /// </summary>
+        /// <param name="code">The system error code.</param>
+        /// <returns>A string with a detailed description of the given system error.</returns>
+        string StdLibExt::GetDetailsFromSystemError(const std::error_code &code)
+        {
+            std::ostringstream oss;
+            oss << code.category().name() << " / " << code.message();
+            return oss.str();
+        }
+
+        /// <summary>
         /// Gets the details from a system error.
         /// </summary>
         /// <param name="ex">The system error.</param>
         /// <returns>A string with a detailed description of the given system error.</returns>
-        string StdLibExt::GetDetailsFromSystemError(std::system_error &ex)
+        string StdLibExt::GetDetailsFromSystemError(const std::system_error &ex)
         {
-            std::ostringstream oss;
-            oss << ex.code().category().name() << " / " << ex.code().message();
-            return oss.str();
+            return GetDetailsFromSystemError(ex.code());
         }
 
         /// <summary>
@@ -33,11 +43,9 @@ namespace _3fd
         /// </summary>
         /// <param name="ex">The future error.</param>
         /// <returns>A string with a detailed description of the given future error.</returns>
-        string StdLibExt::GetDetailsFromFutureError(std::future_error &ex)
+        string StdLibExt::GetDetailsFromFutureError(const std::future_error &ex)
         {
-            std::ostringstream oss;
-            oss << ex.code().category().name() << " / " << ex.code().message();
-            return oss.str();
+            return GetDetailsFromSystemError(ex.code());
         }
 
 #ifdef _WIN32
@@ -147,6 +155,13 @@ namespace _3fd
                 nullptr
             );
 
+            auto errMsgUtf8 = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(wErrMsgPtr);
+            while (errMsgUtf8.back() == '\n' || errMsgUtf8.back() == '\r')
+                errMsgUtf8.pop_back();
+
+            auto strHandle = LocalFree(wErrMsgPtr);
+            _ASSERTE(strHandle == NULL);
+
             if(funcName != nullptr && funcName[0] != 0)
                 oss << funcName << " returned error code " << errCode;
             else
@@ -158,11 +173,7 @@ namespace _3fd
                 return;
             }
             
-            std::wstring_convert<std::codecvt_utf8<wchar_t>> transcoder;
-            oss << ": " << transcoder.to_bytes(wErrMsgPtr);
-
-            auto hnd = LocalFree(wErrMsgPtr);
-            _ASSERTE(hnd == NULL);
+            oss << ": " << errMsgUtf8;
         }
 #   endif
 

@@ -27,9 +27,11 @@ namespace core
     {
     public:
 
-        static string GetDetailsFromSystemError(std::system_error &ex);
+        static string GetDetailsFromSystemError(const std::error_code &code);
 
-        static string GetDetailsFromFutureError(std::future_error &ex);
+        static string GetDetailsFromSystemError(const std::system_error &ex);
+
+        static string GetDetailsFromFutureError(const std::future_error &ex);
     };
 
 #ifdef _WIN32
@@ -206,11 +208,6 @@ namespace core
         /// </summary>
         virtual string ToString() const override
         {
-#       ifdef _3FD_PLATFORM_WINRT
-            const char *newLine = "\n";
-#       else
-            const char *newLine = "\r\n";
-#       endif
             std::ostringstream oss;
             oss << StdExType::what();
 
@@ -220,7 +217,7 @@ namespace core
 
 #            ifdef ENABLE_3FD_CST
             if (m_cst.empty() == false)
-                oss << newLine << newLine << "### CALL STACK TRACE ###" << newLine << m_cst;
+                oss << _newLine_ _newLine_ "### CALL STACK TRACE ###" _newLine_ << m_cst;
 #            endif    
 #        endif
             return oss.str();
