@@ -27,9 +27,6 @@
     <ClCompile Include="tests_utils_pool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="tests_utils_arrayofbits.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="tests_gc_arrayofedges.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -61,9 +58,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="deprecated.txt">
-      <Filter>Source Files</Filter>
-    </Text>
     <Text Include="CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>

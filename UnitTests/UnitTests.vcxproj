@@ -423,16 +423,6 @@
     <ClCompile Include="tests_gc_vertexstore.cpp" />
     <ClCompile Include="tests_gc_arrayofedges.cpp" />
     <ClCompile Include="tests_utils_algorithms.cpp" />
-    <ClCompile Include="tests_utils_arrayofbits.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_XP|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_XP|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_XP|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_XP|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="tests_utils_io.cpp" />
     <ClCompile Include="tests_utils_lockfreequeue.cpp" />
     <ClCompile Include="tests_utils_pool.cpp" />
@@ -450,7 +440,6 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />
-    <Text Include="deprecated.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="application.config" />
