@@ -224,3 +224,11 @@ pip-log.txt
 .mr.developer.cfg
 NEXT COMMIT MESSAGE.txt
 .tfignore
+
+#############
+## CMake
+#############
+
+*.cmake
+CMakeCache.txt
+CMakeFiles/
