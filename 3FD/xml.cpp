@@ -501,7 +501,7 @@ namespace xml
     /// <returns>
     ///   <c>true</c> if a namespace with the given URI has been loaded from document; otherwise, <c>false</c>.
     /// </returns>
-    bool NamespaceResolver::Has(std::string nsUri) const
+    bool NamespaceResolver::Has(const std::string &nsUri) const
     {
         return m_prefixesByNamespace.find(GetNormalized(nsUri)) != m_prefixesByNamespace.end();
     }
@@ -562,7 +562,7 @@ namespace xml
     /// <param name="ns">The referred namespace.</param>
     void NamespaceResolver::AddAliasForNsPrefix(const std::string &prefixAlias, const std::string &ns)
     {
-        if (!m_namespacesByPrefixAlias.emplace(prefixAlias, ns).second)
+        if (!m_namespacesByPrefixAlias.emplace(prefixAlias, GetNormalized(ns)).second)
         {
             throw core::AppException<std::logic_error>(
                 "Resolver does not accept adding twice the same alias for XML namespace prefix!",

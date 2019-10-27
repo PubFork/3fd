@@ -63,7 +63,7 @@ namespace xml
 
         uint32_t LoadNamespacesFrom(XmlNode element);
 
-        bool Has(std::string nsUri) const;
+        bool Has(const std::string &nsUri) const;
 
         bool ParseQualifiedName(const std::string &name,
                                 std::string &nsUri,
