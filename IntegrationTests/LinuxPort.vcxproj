@@ -109,7 +109,7 @@
       <CppLanguageStandard>c++14</CppLanguageStandard>
     </ClCompile>
     <Link>
-      <LibraryDependencies>gtestd;sqlite3;pthread;dl;boost_system-mt-d;boost_thread-mt-d;PocoDataODBCd;PocoDatad;PocoFoundationd;odbc</LibraryDependencies>
+      <LibraryDependencies>gtestd;sqlite3;pthread;dl;boost_thread-mt-d;boost_system-mt-d;boost_filesystem-mt-d;PocoDataODBCd;PocoDatad;PocoFoundationd;odbc</LibraryDependencies>
       <AdditionalLibraryDirectories>/opt/3fd/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <RemotePostBuildEvent>
@@ -133,7 +133,7 @@
       <CppLanguageStandard>c++14</CppLanguageStandard>
     </ClCompile>
     <Link>
-      <LibraryDependencies>gtest;sqlite3;pthread;dl;boost_system-mt;boost_thread-mt;PocoDataODBC;PocoData;PocoFoundation;odbc</LibraryDependencies>
+      <LibraryDependencies>gtest;sqlite3;pthread;dl;boost_thread-mt;boost_system-mt;boost_filesystem-mt;PocoDataODBC;PocoData;PocoFoundation;odbc</LibraryDependencies>
       <AdditionalLibraryDirectories>/opt/3fd/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <RemotePostBuildEvent>

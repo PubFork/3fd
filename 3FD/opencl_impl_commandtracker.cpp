@@ -2,6 +2,7 @@
 #include "opencl_impl.h"
 #include "callstacktracer.h"
 #include "logger.h"
+#include <algorithm>
 
 namespace _3fd
 {
@@ -113,7 +114,7 @@ namespace opencl
             auto lowerBound = blockerCmds.lower_bound(memResource);
             auto upperBound = blockerCmds.upper_bound(memResource);
 
-            for_each(lowerBound, upperBound, [resourceUse, &events](decltype(*lowerBound) &pair)
+            std::for_each(lowerBound, upperBound, [resourceUse, &events](decltype(*lowerBound) &pair)
             {
                 if (pair.second->resourceUse == resourceUse)
                     events.insert(pair.second->event.GetHandle());

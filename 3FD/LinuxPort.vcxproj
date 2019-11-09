@@ -59,7 +59,7 @@
     <ClCompile Include="gc_vertex.cpp" />
     <ClCompile Include="gc_vertexstore.cpp" />
     <ClCompile Include="logger.cpp" />
-    <ClCompile Include="logger_poco.cpp" />
+    <ClCompile Include="logger_dsa.cpp" />
     <ClCompile Include="opencl_impl.cpp" />
     <ClCompile Include="opencl_impl_commandtracker.cpp" />
     <ClCompile Include="opencl_impl_context.cpp" />

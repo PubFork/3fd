@@ -151,11 +151,12 @@ fi
 #
 function buildRapidxml()
 {
-    find . | grep 'rapidxml' | xargs rm -rf
+    find . -type d | grep 'rapidxml' | xargs rm -rf
     RAPIDXML='rapidxml-1.13'
     download "https://netcologne.dl.sourceforge.net/project/rapidxml/rapidxml/rapidxml%201.13/${RAPIDXML}.zip"
     unzip "${RAPIDXML}.zip"
-    mv $RAPIDXML/*.hpp include/
+    { ls include/rapidxml || mkdir -p include/rapidxml; } &> /dev/null
+    mv $RAPIDXML/*.hpp include/rapidxml/
     rm -rf $RAPIDXML*
 }
 
@@ -250,7 +251,7 @@ function buildPoco()
     find ./lib | grep Poco | xargs rm
     { ls include/Poco && rm -rf include/Poco; } &> /dev/null
     printf "${SetColorToYELLOW}Downloading POCO C++ libs source...${SetNoColor}\n"
-    local pocoLabel='poco-1.9.0'
+    local pocoLabel='poco-1.9.4'
     local pocoXDir=$pocoLabel"-all"
     local pocoTarFile=$pocoXDir".tar.gz"
     download "https://pocoproject.org/releases/${pocoLabel}/${pocoTarFile}"

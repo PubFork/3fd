@@ -241,7 +241,7 @@ namespace broker
 
         core::Logger::Write(oss.str(), core::Logger::PRIO_INFORMATION);
     }
-    catch (Poco::Data::SQLException &ex)
+    catch (Poco::Data::DataException &ex)
     {
         CALL_STACK_TRACE;
         std::ostringstream oss;
@@ -348,7 +348,7 @@ namespace broker
             {
                 core::Logger::Write(ex, core::Logger::PRIO_CRITICAL);
             }
-            catch (Poco::Data::SQLException &ex)
+            catch (Poco::Data::DataException &ex)
             {
                 std::ostringstream oss;
                 oss << "Failed to end transaction writing messages into broker queue. "
@@ -405,7 +405,7 @@ namespace broker
             {
                 m_future->get();
             }
-            catch (Poco::Data::SQLException &ex)
+            catch (Poco::Data::DataException &ex)
             {
                 std::ostringstream oss;
                 oss << "Failed to write messages into broker queue. "
@@ -455,7 +455,7 @@ namespace broker
                 m_dbSession.rollback();
                 return true;
             }
-            catch (Poco::Data::SQLException &ex)
+            catch (Poco::Data::DataException &ex)
             {
                 std::ostringstream oss;
                 oss << "Failed to rollback transaction writing messages into broker queue. "
@@ -498,7 +498,7 @@ namespace broker
                 m_dbSession.commit();
                 return true;
             }
-            catch (Poco::Data::SQLException &ex)
+            catch (Poco::Data::DataException &ex)
             {
                 std::ostringstream oss;
                 oss << "Failed to commit transaction writing messages into broker queue. "
@@ -589,7 +589,7 @@ namespace broker
         {
             throw; // just forward exceptions from errors known to have been already handled
         }
-        catch (Poco::Data::SQLException &ex)
+        catch (Poco::Data::DataException &ex)
         {
             std::ostringstream oss;
             oss << "Failed to write messages into broker queue. "

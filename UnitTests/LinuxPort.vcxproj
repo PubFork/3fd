@@ -106,7 +106,7 @@
       <CppLanguageStandard>c++14</CppLanguageStandard>
     </ClCompile>
     <Link>
-      <LibraryDependencies>gtestd;pthread;PocoFoundationd;</LibraryDependencies>
+      <LibraryDependencies>gtestd;pthread;boost_system-mt-d;boost_filesystem-mt-d;</LibraryDependencies>
       <AdditionalLibraryDirectories>/opt/3fd/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <RemotePostBuildEvent>
@@ -130,7 +130,7 @@
       <CppLanguageStandard>c++14</CppLanguageStandard>
     </ClCompile>
     <Link>
-      <LibraryDependencies>gtest;pthread;PocoFoundation;</LibraryDependencies>
+      <LibraryDependencies>gtest;pthread;boost_system-mt;boost_filesystem-mt;</LibraryDependencies>
       <AdditionalLibraryDirectories>/opt/3fd/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <RemotePostBuildEvent>

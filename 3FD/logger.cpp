@@ -1,10 +1,12 @@
 #include "stdafx.h"
 #include "preprocessing.h"
 
+#if defined _3FD_PLATFORM_WIN32API || defined _3FD_PLATFORM_WINRT_UWP
 /* Need to place COM headers here, because some lines
    below POCO interferes undefining Windows macros */
-#if defined _3FD_PLATFORM_WIN32API || defined _3FD_PLATFORM_WINRT_UWP
 #   include <comdef.h>
+#else
+#   include <unistd.h>
 #endif
 
 #include "logger.h"
@@ -50,7 +52,11 @@ namespace core
     /// <returns>A reference to the string stream output.</returns>
     std::ofstream &PrepareEventString(std::ofstream &ofs, time_t timestamp, Logger::Priority prio)
     {
+#ifdef _WIN32
         static const auto pid = GetCurrentProcessId();
+#else
+        static const auto pid = getpid();
+#endif
         std::array<char, 21> buffer;
         strftime(buffer.data(), buffer.size(), "%Y-%b-%d %H:%M:%S", localtime(&timestamp));
         ofs << buffer.data() << " [process " << pid;
@@ -195,7 +201,8 @@ namespace core
     {
         try
         {
-            m_logWriterThread.swap(std::thread(&Logger::LogWriterThreadProc, this));
+            std::thread newThread(&Logger::LogWriterThreadProc, this);
+            m_logWriterThread.swap(newThread);
         }
         catch (std::system_error &ex)
         {/* DO NOTHING: SWALLOW EXCEPTION

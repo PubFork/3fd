@@ -3,7 +3,7 @@
 
 #include "exceptions.h"
 #include "utils.h"
-#include <rapidxml.hpp>
+#include <rapidxml/rapidxml.hpp>
 
 #include <array>
 #include <algorithm>

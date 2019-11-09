@@ -2,9 +2,11 @@
 #include "opencl_impl.h"
 #include "callstacktracer.h"
 #include "logger.h"
-#include <memory>
+
+#include <algorithm>
 #include <fstream>
 #include <functional>
+#include <memory>
 
 namespace _3fd
 {
