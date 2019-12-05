@@ -56,11 +56,7 @@ namespace core
             {
                 struct
                 {
-#ifdef _3FD_POCO_SUPPORT // For POCO C++ logging facilities:
-                    uint32_t purgeAge;
-                    uint32_t purgeCount;
                     bool     writeToConsole;
-#endif
                     uint32_t sizeLimit;
                 } log;
             } common;

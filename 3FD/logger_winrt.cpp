@@ -96,7 +96,7 @@ namespace core
             utils::WinRTExt::WaitForAsync(compressor->FlushAsync());
 
             // Write log shift event in the new log:
-            auto now = system_clock::to_time_t(system_clock::now());
+            now = system_clock::to_time_t(system_clock::now());
             PrepareEventString(ofs, now, Logger::PRIO_NOTICE)
                 << L"The log file has been shifted. The previous file has been compressed from "
                 << readBuffer->Length / 1024 << L" to " << outputStream->Size / 1024

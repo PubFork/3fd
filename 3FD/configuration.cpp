@@ -334,11 +334,7 @@ namespace core
                     // XPath /configuration/common/log:
                     xml::QueryElement("log", xml::Required, {
                         ParseKeyValue("sizeLimit", settings.common.log.sizeLimit = 1024),
-#   ifndef _3FD_PLATFORM_WINRT
-                        ParseKeyValue("purgeAge", settings.common.log.purgeAge = 30),
-                        ParseKeyValue("purgeCount", settings.common.log.purgeCount = 16),
                         ParseKeyValue("writeToConsole", settings.common.log.writeToConsole = false)
-#   endif
                     })
                 }),
                 xml::QueryElement("framework", xml::Required, {
