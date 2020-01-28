@@ -17,9 +17,9 @@ namespace utils
 
 #ifdef _3FD_PLATFORM_WINRT
     
-    SerializableValue<const wchar_t *> FormatArg(Platform::String ^value)
+    SerializableValue<const wchar_t *> FormatArg(const winrt::hstring &value)
     {
-        return SerializableValue<const wchar_t *>(value->Data());
+        return SerializableValue<const wchar_t *>(value.c_str());
     }
 #endif
 

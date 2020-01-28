@@ -8,11 +8,11 @@
 
 #    ifdef _MSC_VER // Visual Studio:
 
-#       ifndef _USING_V110_SDK71_
+#        ifndef _USING_V110_SDK71_
 #            include <winapifamily.h>
-#       endif
+#        endif
 
-        // Windows Desktop App:
+         // Windows Desktop App:
 #        if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP || defined _USING_V110_SDK71_
 
 #            ifdef TESTING // Test application:
@@ -31,19 +31,20 @@
 #        else // Windows Store Apps:
 
 #            ifdef TESTING // Test application:
-#                include <collection.h>
-#                include <ppltasks.h>
+#                include "winrt/Windows.ApplicationModel.Core.h"
+
 #				 define _SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING
 #                include <gtest/gtest.h>
-#                include "App.xaml.h"
 
 #            else // Static library:
 #                include "targetver.h"
 #                ifndef WIN32_LEAN_AND_MEAN
 #                    define WIN32_LEAN_AND_MEAN
 #                endif
-#                include <windows.h>
 #            endif
+
+#            include <windows.h>
+#            include <winrt\base.h>
 
 #        endif
 

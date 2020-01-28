@@ -6,6 +6,7 @@
 
 #ifdef _3FD_PLATFORM_WINRT
 #    include "utils_winrt.h"
+#    include <winrt\Windows.ApplicationModel.h>
 #endif
 
 #include <array>
@@ -255,19 +256,18 @@ namespace core
     /// <returns>A text ID (UTF-8 encoded) for the running application.</returns>
     static string CallSysForApplicationId(string &appFilePath)
     {
-        auto curPackageIdName = Windows::ApplicationModel::Package::Current->Id->Name;
+        winrt::hstring curPackageIdName = winrt::Windows::ApplicationModel::Package::Current().Id().Name();
 
         try
         {
-            std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-            string id = converter.to_bytes( curPackageIdName->Data() );
+            string id = winrt::to_string(curPackageIdName);
             appFilePath = utils::WinRTExt::GetFilePathUtf8(id, utils::WinRTExt::FileLocation::InstallFolder);
             return id;
         }
-        catch (std::exception &ex)
+        catch (winrt::hresult_error &ex)
         {
             std::ostringstream oss;
-            oss << "Generic failure when determining the file name of the framework configuration file: " << ex.what();
+            oss << "Failed to determine name of framework configuration file - " << core::WWAPI::GetDetailsFromWinRTEx(ex);
             throw AppException<std::runtime_error>(oss.str());
         }
     }

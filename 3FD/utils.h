@@ -319,7 +319,7 @@ namespace utils
 
         explicit CStringViewUtf8(const char *p_data) noexcept
             : data(p_data)
-            , lenBytes(p_data != nullptr ? strlen(data) : 0)
+            , lenBytes(p_data != nullptr ? static_cast<uint32_t>(strlen(data)) : 0)
         {}
 
         CStringViewUtf8(const char *beginIter, const char *endIter) noexcept

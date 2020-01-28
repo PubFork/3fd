@@ -14,6 +14,7 @@
 #endif
 
 #ifdef _3FD_PLATFORM_WINRT
+#    include <winrt\Windows.Storage.h>
 #    include "sqlite3.h"
 #endif
 
@@ -156,13 +157,8 @@ namespace core
     FrameworkInstance::FrameworkInstance(const char *thisComName)
         : m_moduleName(thisComName)
     {
-        using namespace Windows::Storage;
-
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> transcoder;
-
-        string tempFolderPath = transcoder.to_bytes(
-            ApplicationData::Current->TemporaryFolder->Path->Data()
-        );
+        string tempFolderPath =
+            winrt::to_string(winrt::Windows::Storage::ApplicationData::Current().TemporaryFolder().Path());
 
         auto tempDirStrSize = tempFolderPath.length() + 1;
         sqlite3_temp_directory = (char *)sqlite3_malloc(tempDirStrSize);

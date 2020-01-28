@@ -339,7 +339,7 @@ namespace utils
 
 #ifdef _3FD_PLATFORM_WINRT
     // Wraps a string argument to prepare for serialization
-    SerializableValue<const wchar_t *> FormatArg(Platform::String ^value);
+    SerializableValue<const wchar_t *> FormatArg(const winrt::hstring &value);
 #endif
 
     //////////////////////////////

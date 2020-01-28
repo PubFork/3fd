@@ -181,15 +181,15 @@ namespace _3fd
         /// <summary>
         /// Gets the details from a WinRT exception.
         /// </summary>
-        /// <param name="ex">The exception handle.</param>
+        /// <param name="ex">The platform exception.</param>
         /// <returns>The details about the exception.</returns>
-        string WWAPI::GetDetailsFromWinRTEx(Platform::Exception ^ex)
+        string WWAPI::GetDetailsFromWinRTEx(const winrt::hresult_error &ex)
         {
             std::wostringstream woss;
-            woss << L"HRESULT error code 0x" << std::hex << ex->HResult << L": ";
+            woss << L"HRESULT error code 0x" << std::hex << ex.code() << L": ";
 
             std::array<wchar_t, 256> buffer;
-            wcsncpy(buffer.data(), ex->Message->Data(), buffer.size());
+            wcsncpy(buffer.data(), ex.message().data(), buffer.size());
             buffer[buffer.size() - 1] = L'\0';
 
             auto token = wcstok(buffer.data(), L"\r\n");

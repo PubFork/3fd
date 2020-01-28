@@ -12,6 +12,9 @@
 #    define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 #   include <windows.h>
     class _com_error;
+#   ifdef _3FD_PLATFORM_WINRT
+#       include <winrt\base.h>
+#   endif
 #endif
 
 namespace _3fd
@@ -60,7 +63,7 @@ namespace core
 #   endif
 
 #    ifdef _3FD_PLATFORM_WINRT
-        static string GetDetailsFromWinRTEx(Platform::Exception ^ex);
+        static string GetDetailsFromWinRTEx(const winrt::hresult_error &ex);
 #    endif
     };
 #endif

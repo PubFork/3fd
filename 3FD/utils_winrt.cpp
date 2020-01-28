@@ -2,8 +2,13 @@
 #include "utils_winrt.h"
 #include "exceptions.h"
 #include "logger.h"
+
 #include <shcore.h>
+#include <wrl.h>
 #include <windows.storage.streams.h>
+#include <winrt\Windows.Storage.Streams.h>
+#include <winrt\Windows.ApplicationModel.h>
+#include <winrt\Windows.UI.Xaml.Controls.h>
 
 #include <array>
 #include <limits>
@@ -324,27 +329,65 @@ namespace utils
     /// </summary>
     /// <param name="data">The address of the buffer memory backing this stream.</param>
     /// <param name="nBytes">The size of the buffer in bytes.</param>
-    /// <returns>An object implementing <see cref="Windows::Storage::Streams::IRandomAccessStream"/>.</returns>
-    Windows::Storage::Streams::IRandomAccessStream ^
-    WinRTExt::CreateRandomAccessStreamFromBuffer(void *data, ULONG nBytes)
+    /// <returns>An object implementing <see cref="winrt::Windows::Storage::Streams::IRandomAccessStream"/>.</returns>
+    WinRTExt::IRandomAccessStream WinRTExt::CreateRandomAccessStreamFromBuffer(void *data, ULONG nBytes)
     {
-        using namespace Microsoft::WRL;
-        using namespace ABI::Windows::Storage::Streams;
+        try
+        {
+            Microsoft::WRL::ComPtr<::IStream> bufStream = new ComStreamFromBuffer(data, nBytes);
 
-        ComPtr<IStream> bufStream = new ComStreamFromBuffer(data, nBytes);
+            winrt::com_ptr<ABI::Windows::Storage::Streams::IRandomAccessStream> abiObject;
+            winrt::check_hresult(
+                CreateRandomAccessStreamOverStream(bufStream.Get(),
+                                                    BSOS_PREFERDESTINATIONSTREAM,
+                                                    __uuidof(abiObject),
+                                                    abiObject.put_void())
+            );
+            
+            // see https://docs.microsoft.com/de-de/windows/uwp/cpp-and-winrt-apis/interop-winrt-abi
+            IRandomAccessStream randomAccessStream;
+            winrt::check_hresult(
+                abiObject->QueryInterface(reinterpret_cast<const IID &>(winrt::guid_of<IRandomAccessStream>()),
+                                          winrt::put_abi(randomAccessStream))
+            );
 
-        ComPtr<IRandomAccessStream> winrtStream;
+            return randomAccessStream;
+        }
+        catch (winrt::hresult_error &ex)
+        {
+            std::ostringstream oss;
+            oss << "Failed to create stream from buffer - " << core::WWAPI::GetDetailsFromWinRTEx(ex);
+            throw core::AppException<std::runtime_error>(oss.str());
+        }
 
-        HRESULT hr = CreateRandomAccessStreamOverStream(bufStream.Get(),
-                                                        BSOS_PREFERDESTINATIONSTREAM,
-                                                        IID_PPV_ARGS(winrtStream.GetAddressOf()));
-        core::WWAPI::RaiseHResultException(hr,
-            "Failed to create stream from buffer",
-            "CreateRandomAccessStreamOverStream");
-
-        return reinterpret_cast<Windows::Storage::Streams::IRandomAccessStream ^> (winrtStream.Get());
     }
 
+    /// <summary>
+    /// Gets the path for a given directory in the sandbox.
+    /// </summary>
+    static winrt::hstring GetPath(WinRTExt::FileLocation where)
+    {
+        using namespace winrt::Windows::Storage;
+
+        switch (where)
+        {
+        case WinRTExt::FileLocation::InstallFolder:
+            return winrt::Windows::ApplicationModel::Package::Current().InstalledLocation().Path();
+
+        case WinRTExt::FileLocation::LocalFolder:
+            return ApplicationData::Current().LocalFolder().Path();
+
+        case WinRTExt::FileLocation::TempFolder:
+            return ApplicationData::Current().TemporaryFolder().Path();
+
+        case WinRTExt::FileLocation::RoamingFolder:
+            return ApplicationData::Current().RoamingFolder().Path();
+
+        default:
+            _ASSERTE(false);
+            return winrt::hstring();
+        }
+    }
 
     /// <summary>
     /// Gets the path of a specified location of the
@@ -354,71 +397,7 @@ namespace utils
     /// <returns>The location path, UTF-8 encoded.</returns>
     std::string WinRTExt::GetPathUtf8(FileLocation where)
     {
-        using namespace Windows::Storage;
-
-        Platform::String ^path;
-
-        switch (where)
-        {
-        case WinRTExt::FileLocation::InstallFolder:
-            path = Windows::ApplicationModel::Package::Current->InstalledLocation + L"\\";
-            break;
-
-        case WinRTExt::FileLocation::LocalFolder:
-            path = ApplicationData::Current->LocalFolder->Path + L"\\";
-            break;
-
-        case WinRTExt::FileLocation::TempFolder:
-            path = ApplicationData::Current->TemporaryFolder->Path + L"\\";
-            break;
-
-        case WinRTExt::FileLocation::RoamingFolder:
-            path = ApplicationData::Current->RoamingFolder->Path + L"\\";
-            break;
-
-        default:
-            _ASSERTE(false);
-        }
-
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> transcoder;
-        return transcoder.to_bytes(path->Data());
-    }
-
-    // Private implementation for 'GetFilePath'
-    static std::string GetFilePathUtf8Impl(
-        Platform::String ^utf16FileName,
-        WinRTExt::FileLocation where,
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> &transcoder)
-    {
-        using namespace Windows::Storage;
-
-        StorageFolder ^folder;
-        
-        switch (where)
-        {
-        case WinRTExt::FileLocation::InstallFolder:
-            folder = Windows::ApplicationModel::Package::Current->InstalledLocation;
-            break;
-
-        case WinRTExt::FileLocation::LocalFolder:
-            folder = ApplicationData::Current->LocalFolder;
-            break;
-
-        case WinRTExt::FileLocation::TempFolder:
-            folder = ApplicationData::Current->TemporaryFolder;
-            break;
-
-        case WinRTExt::FileLocation::RoamingFolder:
-            folder = ApplicationData::Current->RoamingFolder;
-            break;
-
-        default:
-            break;
-        }
-
-        std::wostringstream woss;
-        woss << folder->Path->Data() << L'\\' << utf16FileName->Data();
-        return transcoder.to_bytes(woss.str());
+        return winrt::to_string(GetPath(where) + L"\\");
     }
 
     /// <summary>
@@ -429,11 +408,11 @@ namespace utils
     /// <param name="fileName">Name of the file.</param>
     /// <param name="where">The location where to look for the file.</param>
     /// <returns>The complete path of the file (UTF-8 encoded) in the given location.</returns>
-    std::string WinRTExt::GetFilePathUtf8(const std::string &fileName, WinRTExt::FileLocation where)
+    std::string WinRTExt::GetFilePathUtf8(std::string_view fileName, WinRTExt::FileLocation where)
     {
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> transcoder;
-        auto utf16FileName = ref new Platform::String(transcoder.from_bytes(fileName).c_str());
-        return GetFilePathUtf8Impl(utf16FileName, where, transcoder);
+        std::ostringstream oss;
+        oss << winrt::to_string(GetPath(where)) << '\\' << fileName;
+        return oss.str();
     }
 
     /// <summary>
@@ -444,28 +423,10 @@ namespace utils
     /// <param name="fileName">Name of the file.</param>
     /// <param name="where">The location where to look for the file.</param>
     /// <returns>The complete path of the file (UTF-8 encoded) in the given location.</returns>
-    std::string WinRTExt::GetFilePathUtf8(const char *fileName, WinRTExt::FileLocation where)
+    std::string WinRTExt::GetFilePathUtf8(std::wstring_view fileName, WinRTExt::FileLocation where)
     {
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> transcoder;
-        auto utf16FileName = ref new Platform::String(transcoder.from_bytes(fileName).c_str());
-        return GetFilePathUtf8Impl(utf16FileName, where, transcoder);
+        return winrt::to_string(GetPath(where) + L'\\' + fileName);
     }
-
-    /// <summary>
-    /// Gets the path of a file in the specified location
-    /// of the sandboxed storage system of WinRT platform.
-    /// If the specified file does not exist, it is created.
-    /// </summary>
-    /// <param name="fileName">Name of the file.</param>
-    /// <param name="where">The location where to look for the file.</param>
-    /// <returns>The complete path of the file (UTF-8 encoded) in the given location.</returns>
-    std::string WinRTExt::GetFilePathUtf8(const wchar_t *fileName, WinRTExt::FileLocation where)
-    {
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> transcoder;
-        Platform::StringReference utf16FileName(fileName);
-        return GetFilePathUtf8Impl(utf16FileName, where, transcoder);
-    }
-
 
     /// <summary>
     /// Determines whether the current thread is the application main STA thread.
@@ -496,99 +457,6 @@ namespace utils
         return (aptType == APTTYPE_STA || aptType == APTTYPE_MAINSTA);
     }
 
-    // Translates a WinRT exception to a framework exception
-    core::AppException<std::runtime_error> WinRTExt::TranslateAsyncWinRTEx(Platform::Exception ^ex)
-    {
-        std::ostringstream oss;
-        oss << "Windows Runtime asynchronous call reported an error: "
-            << core::WWAPI::GetDetailsFromWinRTEx(ex);
-
-        return core::AppException<std::runtime_error>(oss.str());
-    }
-
-
-    /// <summary>
-    /// Waits for an asynchronous WinRT action in the application UI STA thread.
-    /// </summary>
-    /// <param name="asyncAction">The asynchronous WinRT action to wait for.</param>
-    void WinRTExt::WaitForAsync(IAsyncAction ^asyncAction)
-    {
-        using Windows::Foundation::AsyncStatus;
-
-        try
-        {
-            /* If callback is completed, just exit. If callback execution
-            is not finished, awaiting for completion is allowed as long as
-            the current thread is not in app UI STA: */
-            if (asyncAction->Status != AsyncStatus::Started || !IsCurrentThreadASTA())
-            {
-                try
-                {
-                    concurrency::create_task(asyncAction).get();
-                    return;
-                }
-                catch (Platform::Exception ^ex)
-                {
-                    throw TranslateAsyncWinRTEx(ex);
-                }
-            }
-
-            /* Otherwise, await for completion the way done below, which is the easiest
-            that works in the app UI STA thread, and transports any eventual exception: */
-
-            std::promise<void> resultPromise;
-            auto resultFuture = resultPromise.get_future();
-
-            // Set delegate for completion event:
-            asyncAction->Completed = ref new AsyncActionCompletedHandler(
-                // Handler for completion:
-                [&resultPromise](decltype(asyncAction) action, AsyncStatus status)
-                {
-                    try
-                    {
-                        // Get result and fulfill the promise:
-                        action->GetResults();
-                        action->Close();
-                        resultPromise.set_value();
-                    }
-                    catch (Platform::Exception ^ex) // transport exception:
-                    {
-                        auto appEx = std::make_exception_ptr(TranslateAsyncWinRTEx(ex));
-                        resultPromise.set_exception(appEx);
-                    }
-                }
-            );
-
-            resultFuture.get(); // waits for completion and throws any transported exception
-        }
-        catch (core::IAppException &)
-        {
-            throw; // just forward exceptions for errors that have already been handled
-        }
-        catch (std::future_error &ex)
-        {
-            std::ostringstream oss;
-            oss << "Failed to wait for WinRT asynchronous action: "
-                << core::StdLibExt::GetDetailsFromFutureError(ex);
-
-            throw core::AppException<std::runtime_error>(oss.str());
-        }
-        catch (std::exception &ex)
-        {
-            std::ostringstream oss;
-            oss << "Generic error when waiting for WinRT asynchronous action: " << ex.what();
-            throw core::AppException<std::runtime_error>(oss.str());
-        }
-        catch (Platform::Exception ^ex)
-        {
-            std::ostringstream oss;
-            oss << "Generic failure when preparing to wait for Windows Runtime asynchronous action: "
-                << core::WWAPI::GetDetailsFromWinRTEx(ex);
-
-            throw core::AppException<std::runtime_error>(oss.str());
-        }
-    }
-
 
     ///////////////////////
     // UwpXaml Struct
@@ -601,15 +469,15 @@ namespace utils
     /// <param name="title">The title of the dialog.</param>
     /// <param name="content">The error message.</param>
     /// <param name="closeButtonText">The close button text.</param>
-    void UwpXaml::Notify(Platform::String ^title,
-                         Platform::String ^content,
-                         Platform::String ^closeButtonText)
+    void UwpXaml::Notify(std::string_view title,
+                         std::string_view content,
+                         std::string_view closeButtonText)
     {
-        auto dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-        dialog->Title = title;
-        dialog->Content = content;
-        dialog->SecondaryButtonText = closeButtonText;
-        dialog->ShowAsync();
+        winrt::Windows::UI::Xaml::Controls::ContentDialog dialog;
+        dialog.Title(winrt::box_value(winrt::to_hstring(title)));
+        dialog.Content(winrt::box_value(winrt::to_hstring(content)));
+        dialog.SecondaryButtonText(winrt::to_hstring(closeButtonText));
+        dialog.ShowAsync();
     }
 
     /// <summary>
@@ -619,22 +487,15 @@ namespace utils
     /// <param name="title">The dialog title.</param>
     /// <param name="closeButtonText">The close button text.</param>
     /// <param name="logEntryPrio">The priority for the log entry.</param>
-    void UwpXaml::NotifyAndLog(std::exception &ex,
-                               Platform::String ^title,
-                               Platform::String ^closeButtonText,
+    void UwpXaml::NotifyAndLog(const std::exception &ex,
+                               std::string_view title,
+                               std::string_view closeButtonText,
                                core::Logger::Priority logEntryPrio)
     {
         std::ostringstream oss;
         oss << "Generic exception: " << ex.what();
-        auto utf8content = oss.str();
-
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> transcoder;
-        auto wcontent = ref new Platform::String(
-            transcoder.from_bytes(utf8content).c_str()
-        );
-
-        Notify(title, wcontent, closeButtonText);
-
+        std::string utf8content = oss.str();
+        Notify(title, utf8content, closeButtonText);
         core::Logger::Write(utf8content, logEntryPrio);
     }
 
@@ -645,35 +506,33 @@ namespace utils
     /// <param name="title">The dialog title.</param>
     /// <param name="closeButtonText">The close button text.</param>
     /// <param name="logEntryPrio">The priority for the log entry.</param>
-    void UwpXaml::NotifyAndLog(Platform::Exception ^ex,
-                               Platform::String ^title,
-                               Platform::String ^closeButtonText,
+    void UwpXaml::NotifyAndLog(const winrt::hresult_error &ex,
+                               std::string_view title,
+                               std::string_view closeButtonText,
                                core::Logger::Priority logEntryPrio)
     {
-        std::wostringstream woss;
-        woss << L"HRESULT error code 0x" << std::hex << ex->HResult << L": ";
+        std::ostringstream oss;
+        oss << "HRESULT error code 0x" << std::hex << ex.code() << ": ";
 
-        std::array<wchar_t, 256> buffer;
-        wcsncpy(buffer.data(), ex->Message->Data(), buffer.size());
-        buffer[buffer.size() - 1] = L'\0';
+        std::array<char, 256> buffer;
+        strncpy(buffer.data(), winrt::to_string(ex.message()).data(), buffer.size());
+        buffer[buffer.size() - 1] = '\0';
 
-        auto token = wcstok(buffer.data(), L"\r\n");
+        auto token = strtok(buffer.data(), "\r\n");
         while (true)
         {
-            woss << token;
+            oss << token;
 
-            token = wcstok(nullptr, L"\r\n");
+            token = strtok(nullptr, "\r\n");
             if (token != nullptr)
-                woss << L" - ";
+                oss << " - ";
             else
                 break;
         }
 
-        auto message = woss.str();
-        Notify(title, ref new Platform::String(message.c_str()), closeButtonText);
-
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> transcoder;
-        core::Logger::Write(transcoder.to_bytes(message), logEntryPrio);
+        std::string message = oss.str();
+        Notify(title, message, closeButtonText);
+        core::Logger::Write(message, logEntryPrio);
     }
 
     /// <summary>
@@ -683,21 +542,14 @@ namespace utils
     /// <param name="title">The dialog title.</param>
     /// <param name="closeButtonText">The close button text.</param>
     /// <param name="logEntryPrio">The priority for the log entry.</param>
-    void UwpXaml::NotifyAndLog(core::IAppException &ex,
-                               Platform::String ^title,
-                               Platform::String ^closeButtonText,
+    void UwpXaml::NotifyAndLog(const core::IAppException &ex,
+                               std::string_view title,
+                               std::string_view closeButtonText,
                                core::Logger::Priority logEntryPrio)
     {
         std::ostringstream oss;
         oss << ex.What() << "\n\n" << ex.Details();
-
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> transcoder;
-
-        auto content = ref new Platform::String(
-            transcoder.from_bytes(oss.str()).c_str()
-        );
-
-        Notify(title, content, closeButtonText);
+        Notify(title, oss.str(), closeButtonText);
         core::Logger::Write(ex.ToString(), logEntryPrio);
     }
 
@@ -710,24 +562,27 @@ namespace utils
     /// <returns>
     /// <c>STATUS_OKAY</c> if the task finished without throwing an exception, otherwise, <c>STATUS_FAIL</c>.
     /// </returns>
-    bool UwpXaml::CheckActionTask(const concurrency::task<void> &task, const ExNotifAndLogParams &exHndParams)
+    bool UwpXaml::CheckActionTask(const concurrency::task<void> &task,
+                                  std::string_view title,
+                                  std::string_view closeButtonText,
+                                  core::Logger::Priority logEntryPrio)
     {
         try
         {
             task.get();
             return STATUS_OKAY;
         }
-        catch (Platform::Exception ^ex)
+        catch (winrt::hresult_error &ex)
         {
-            NotifyAndLog(ex, exHndParams.title, exHndParams.closeButtonText, exHndParams.logEntryPrio);
+            NotifyAndLog(ex, title, closeButtonText, logEntryPrio);
         }
         catch (core::IAppException &ex)
         {
-            NotifyAndLog(ex, exHndParams.title, exHndParams.closeButtonText, exHndParams.logEntryPrio);
+            NotifyAndLog(ex, title, closeButtonText, logEntryPrio);
         }
         catch (std::exception &ex)
         {
-            NotifyAndLog(ex, exHndParams.title, exHndParams.closeButtonText, exHndParams.logEntryPrio);
+            NotifyAndLog(ex, title, closeButtonText, logEntryPrio);
         }
         catch (...)
         {
