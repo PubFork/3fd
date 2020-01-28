@@ -20,11 +20,14 @@
 # =============================================
 
 param (
-    [string]$arch = $(Read-Host 'Architecture (x86, x64, ARM, all)'),
-    [string]$rebuild = $(Read-Host 'Rebuild? (no/yes)')
+    [string]$arch = $(Read-Host 'Architecture (x86, x64, ARM, all)').ToLower(),
+    [string]$rebuild = $(Read-Host 'Rebuild? (no/yes)').ToLower(),
+    [string]$winSdkVer = $(Read-Host 'Windows SDK version? (ex.: 10.0.17763.0)')
 )
 
-
+[boolean]$BUILD_X64 = ($arch -eq 'x64') -or ($arch -eq 'all');
+[boolean]$BUILD_X86 = ($arch -eq 'x86') -or ($arch -eq 'all');
+[boolean]$BUILD_ARM = ($arch -eq 'arm') -or ($arch -eq 'all');
 [string]$task;
 
 if ($rebuild -eq 'yes')
@@ -328,7 +331,7 @@ function MsBuild (
                 AppendFile -file $msbuildScriptFPath -line ('call "' + $global:vcvarsall.FullName + '" x86');
             }
             "arm" {
-                AppendFile -file $msbuildScriptFPath -line ('call "' + $global:vcvarsall.FullName + '" x86_arm');
+                AppendFile -file $msbuildScriptFPath -line ('call "' + $global:vcvarsall.FullName + '" x64_arm64');
             }
             default {
                 RaiseError ('Architecture <' + $arch + '> is unknown!');
@@ -336,7 +339,6 @@ function MsBuild (
         }
 
         AppendFile -file $msbuildScriptFPath -line $command;
-
         AppendFile -file $msbuildScriptFPath -line 'exit %errorlevel%';
 
         WriteConsole 'Building in legacy prompt...';
@@ -347,13 +349,44 @@ function MsBuild (
 
 
 ###
+# download file:
+#
+function DownloadFile (
+    [string]$url,      # URL to download file from
+    [string]$filePath, # path where to place downloaded file
+    [string]$checksum  # checksum by SHA256 (avoids downloading again already present file)
+)
+{
+    WriteConsole "Downloading $url ...";
+
+    if ($(Test-Path $filePath) -and
+        ($(Get-FileHash $filePath).Hash -eq $checksum))
+    {
+        return;
+    }
+
+    LoadDotNetAssemblies;
+    
+    (New-Object System.Net.WebClient).DownloadFile($url, $filePath);
+    
+    if (-not $(Test-Path $filePath))
+    {
+        RaiseError "Failed to download $filePath";
+    }
+
+    if ($(Get-FileHash $filePath).Hash -ne $checksum)
+    {
+        RaiseError "Downloaded file $filePath did not match checksum!";
+    }
+}
+
+###
 # Check BOOST_HOME:
 #
 
 [string]$boostVersion = '1.72.0';
 [string]$boostZipLabel = 'boost_1_72_0';
 [string]$boostHomePathExpSuffix = 'Boost\v' + $boostVersion + '\';
-
 [string]$envVarBoostHome = [Environment]::GetEnvironmentVariable("BOOST_HOME");
 
 if (
@@ -373,9 +406,60 @@ if (
 # # # # #
 # Build boost libraries
 #
-function BuildBoostLibs ()
+function StartBoostBuild (
+    [string]$architectureLabel,
+    [string]$libDirSuffix,
+    [string]$devPromptArchParam,
+    [string]$boostAddrModelParam
+)
 {
-    #LoadDotNetAssemblies;
+    ###
+    # generate script:
+
+    mkdir "$boostInstallDir\include" -Force;
+    mkdir ($boostInstallDir + $libDirSuffix) -Force;
+    
+    [string]$boostBuildBatchScriptFPath = "$boostSourceDir\build_boost_$architectureLabel.bat";
+
+    if ($(Test-Path $boostBuildBatchScriptFPath))
+    {
+        Remove-Item $boostBuildBatchScriptFPath;
+    }
+
+    AppendFile -file $boostBuildBatchScriptFPath -line ('cd "' + $boostSourceDir + '\tools\build"');
+    AppendFile -file $boostBuildBatchScriptFPath -line ('call bootstrap.bat');
+    AppendFile -file $boostBuildBatchScriptFPath -line ('cd ..\..\');
+
+    [UInt32]$nCpuCores = $(Get-WmiObject -Class win32_processor).NumberOfCores;
+
+    [string]$buildCmdDebug =
+        "tools\build\b2.exe -j $nCpuCores --abbreviate-paths $boostAddrModelParam variant=debug link=static threading=multi runtime-link=shared";
+    
+    [string]$buildCmdRelease =
+        "tools\build\b2.exe -j $nCpuCores --abbreviate-paths $boostAddrModelParam variant=release link=static threading=multi runtime-link=shared";
+
+    AppendFile -file $boostBuildBatchScriptFPath -line $buildCmdDebug;
+    AppendFile -file $boostBuildBatchScriptFPath -line $buildCmdRelease;
+    AppendFile -file $boostBuildBatchScriptFPath -line ('move stage\lib\* "' + $boostInstallDir + $libDirSuffix);
+
+    ###
+    # start build:
+
+    WriteConsole "Starting boost build for $architectureLabel...";
+
+    $cmdPID = $(Start-Process -FilePath "$boostBuildBatchScriptFPath" -PassThru).Id;
+
+    Wait-Process -Id $cmdPID;
+
+    if (@(Get-ChildItem ($boostInstallDir + $libDirSuffix)).Length -eq 0)
+    {
+        RaiseError "Boost build for $architectureLabel has failed!";
+    }
+}
+
+function InstallBoostLibs ()
+{
+    LoadDotNetAssemblies;
     
     FindVisualStudioInstallation;
     
@@ -384,7 +468,7 @@ function BuildBoostLibs ()
     
     if ($(Test-Path $envVarBoostHome))
     {
-        [string]$continue = $(Read-Host 'Boost libraries appears to be already installed. Do you want to erase and rebuild that? (no/yes)');
+        [string]$continue = $(Read-Host 'Boost libraries appear to be already installed. Do you want to erase and rebuild that? (no/yes)');
 
         if ($continue.ToLower() -ne 'yes')
         {
@@ -403,23 +487,10 @@ function BuildBoostLibs ()
 
     ###
     # download:
-
-    WriteConsole 'Downloading boost source code...';
-    
-    if ($(Test-Path $boostZipFPath))
-    {
-        Remove-Item $boostZipFPath -Force;
-    }
-    
-    (New-Object System.Net.WebClient).DownloadFile(
-        'https://dl.bintray.com/boostorg/release/' + $boostVersion + '/source/' + $boostZipFName,
-        $boostZipFPath
-    );
-
-    if (-not $(Test-Path $boostZipFPath))
-    {
-        RaiseError 'Failed to download boost source code!';
-    }
+    DownloadFile `
+        "https://dl.bintray.com/boostorg/release/$boostVersion/source/$boostZipFName" `
+        $boostZipFPath `
+        '8C20440AABA21DD963C0F7149517445F50C62CE4EB689DF2B5544CC89E6E621E';
     
     ###
     # extract:
@@ -432,83 +503,39 @@ function BuildBoostLibs ()
     {
         Remove-Item -Force -Recurse $boostSourceDir;
     }
-
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($boostZipFPath, $boostDir);
+#    [System.IO.Compression.ZipFile]::ExtractToDirectory($boostZipFPath, $boostDir);
     
     if (-not $(Test-Path $boostSourceDir))
     {
-        RaiseError 'Failed to extract boost source code!';
+        RaiseError "Failed to extract $boostZipFPath!";
     }
     
     ###
-    # generate build script:
+    # build and install libs:
 
-    WriteConsole 'Generating build script...';
+    [string]$libDirSuffix;
 
-    mkdir ($boostInstallDir + '\include') -Force;
-    mkdir ($boostInstallDir + '\lib\Win32') -Force;
-    mkdir ($boostInstallDir + '\lib\x64') -Force;
-    
-    [string]$boostBuildBatchScriptFPath = $boostSourceDir + '\build_boost.bat';
-
-    if ($(Test-Path $boostBuildBatchScriptFPath))
+    if ($BUILD_X64)
     {
-        Remove-Item $boostBuildBatchScriptFPath;
+        $libDirSuffix = '\lib\x64';
+        StartBoostBuild 'x64' $libDirSuffix 'x86_amd64' 'architecture=x86 address-model=64';
     }
-
-    AppendFile -file $boostBuildBatchScriptFPath -line ('call "' + $global:vcvarsall.FullName + '" x86_amd64');
-    AppendFile -file $boostBuildBatchScriptFPath -line ('cd "' + $boostSourceDir + '\tools\build"');
-    AppendFile -file $boostBuildBatchScriptFPath -line ('call bootstrap.bat');
-    AppendFile -file $boostBuildBatchScriptFPath -line ('cd ..\..\');
-
-    [UInt32]$nCpuCores = $(Get-WmiObject -Class win32_processor).NumberOfCores;
-
-    [string]$buildCmdDbgX64 =
-        "tools\build\b2.exe -j $nCpuCores --abbreviate-paths address-model=64 variant=debug link=static threading=multi runtime-link=shared";
-    
-    [string]$buildCmdRelX64 =
-        "tools\build\b2.exe -j $nCpuCores --abbreviate-paths address-model=64 variant=release link=static threading=multi runtime-link=shared";
-    
-    [string]$buildCmdDbgX86 =
-        "tools\build\b2.exe -j $nCpuCores --abbreviate-paths address-model=32 variant=debug link=static threading=multi runtime-link=shared";
-
-    [string]$buildCmdRelX86 =
-        "tools\build\b2.exe -j $nCpuCores --abbreviate-paths address-model=32 variant=release link=static threading=multi runtime-link=shared";
-    
-    AppendFile -file $boostBuildBatchScriptFPath -line $buildCmdDbgX64;
-    AppendFile -file $boostBuildBatchScriptFPath -line $buildCmdRelX64;
-    AppendFile -file $boostBuildBatchScriptFPath -line ('move stage\lib\* "' + $boostInstallDir + '\lib\x64"');
-    AppendFile -file $boostBuildBatchScriptFPath -line ('call "' + $global:vcvarsall + '" x86');
-    AppendFile -file $boostBuildBatchScriptFPath -line $buildCmdDbgX86;
-    AppendFile -file $boostBuildBatchScriptFPath -line $buildCmdRelX86;
-    AppendFile -file $boostBuildBatchScriptFPath -line ('move stage\lib\* "' + $boostInstallDir + '\lib\Win32"');
-
-    ###
-    # start build & install:
-    
-    WriteConsole 'Building boost...';
-
-    $cmdPID = $(Start-Process -FilePath ('"' + $boostBuildBatchScriptFPath + '"') -PassThru).Id;
-
-    Wait-Process -Id $cmdPID;
-
-    if (@(Get-ChildItem ($boostInstallDir + '\lib\x64')).Length -eq 0)
+    if ($BUILD_X86)
     {
-        RaiseError 'Failed to build boost x64!';
+        $libDirSuffix = '\lib\Win32';
+        StartBoostBuild 'x86' $libDirSuffix 'x86' 'architecture=x86 address-model=32';
     }
-
-    if (@(Get-ChildItem ($boostInstallDir + '\lib\Win32')).Length -eq 0)
+    if ($BUILD_ARM)
     {
-        RaiseError 'Failed to build boost x86!';
+        $libDirSuffix = '\lib\ARM';
+        StartBoostBuild 'ARM' $libDirSuffix 'x86_arm64' 'architecture=arm address-model=64';
     }
+    
+    # install headers:
+    Move-Item "$boostSourceDir\boost" "$boostInstallDir\include\";
 
-    Move-Item ($boostSourceDir + '\boost') ($boostInstallDir + '\include\');
-
-    ###
     # clean-up:
-
     Remove-Item $boostSourceDir -Recurse -Force;
-    Remove-Item $boostZipFPath -Force;
 }
 
 
@@ -518,7 +545,6 @@ function BuildBoostLibs ()
 
 [string]$pocoVersion = '1.9.4';
 [string]$pocoRootPathExpSuffix = 'POCO\v' + $pocoVersion + '\';
-
 [string]$envVarPocoRoot = [Environment]::GetEnvironmentVariable("POCO_ROOT");
 
 if (
@@ -539,8 +565,14 @@ if (
 #
 function BuildPocoLibs ()
 {
-    #LoadDotNetAssemblies;
+    LoadDotNetAssemblies;
     
+    [string]$pocoDir = $(Get-ChildItem $(Join-Path -Path $envVarPocoRoot -ChildPath '\..\')).FullName;
+    [string]$pocoZipLabel = 'poco-' + $pocoVersion + '-all';
+    [string]$pocoZipFName = $pocoZipLabel + '.zip';
+    [string]$pocoZipFPath = $pocoDir + '\' + $pocoZipFName;
+    [string]$pocoInstallDir = $envVarPocoRoot;
+
     if ($(Test-Path $envVarPocoRoot))
     {
         [string]$continue = $(Read-Host 'POCO C++ libraries appears to be already installed. Do you want to erase and rebuild that? (no/yes)');
@@ -550,42 +582,22 @@ function BuildPocoLibs ()
             return;
         }
 
-        Remove-Item -Force -Recurse ($envVarPocoRoot + '\*');
+        Remove-Item -Force -Recurse "$envVarPocoRoot\*" -Exclude $pocoZipFName;
     }
     
     mkdir -Path $envVarPocoRoot -Force;
 
-    [string]$pocoDir = $(Get-ChildItem $(Join-Path -Path $envVarPocoRoot -ChildPath '\..\')).FullName;
-
-    [string]$pocoZipLabel = 'poco-' + $pocoVersion + '-all';
-    [string]$pocoZipFName = $pocoZipLabel + '.zip';
-    [string]$pocoZipFPath = $pocoDir + '\' + $pocoZipFName;
-    [string]$pocoInstallDir = $envVarPocoRoot;
-    
     ###
     # download:
-    
-    WriteConsole 'Downloading POCO C++ source code...';
-
-    if ($(Test-Path $pocoZipFPath))
-    {
-        Remove-Item $pocoZipFPath -Force;
-    }
-    
-    (New-Object System.Net.WebClient).DownloadFile(
-        'https://pocoproject.org/releases/poco-' + $pocoVersion + '/' + $pocoZipFName,
-        $pocoZipFPath
-    );
-
-    if (-not $(Test-Path $pocoZipFPath))
-    {
-        RaiseError 'Failed to download POCO C++ source code!';
-    }
+    DownloadFile `
+        "https://pocoproject.org/releases/poco-$pocoVersion/$pocoZipFName" `
+        $pocoZipFPath `
+        'B74ECDAA5BDF7F8BFDFBA66F72BA00B6A35934E55573DB2A5BC2D8A412AEA8E7';
     
     ###
     # extract:
 
-    WriteConsole 'Extracting downloaded file...';
+    WriteConsole "Extracting $pocoZipFPath ...";
     
     [string]$pocoSourceDir = $pocoDir + '\' + $pocoZipLabel;
     
@@ -607,63 +619,46 @@ function BuildPocoLibs ()
     ###
     # build:
     
-    [string]$winsdk = '10.0.17134.0'; # retarget POCO projects to use Win10 SDK
-
-    WriteConsole 'Building POCO C++ Foundation x86...';
-    MsBuild -what ($pocoInstallDir + '\Foundation\Foundation_vs150.vcxproj') -task build -arch x86 -config debug_static_md -sdk $winsdk -toolset $customToolset
-    MsBuild -what ($pocoInstallDir + '\Foundation\Foundation_vs150.vcxproj') -task build -arch x86 -config release_static_md -sdk $winsdk -toolset $customToolset
-    
-    WriteConsole 'Building POCO C++ Foundation x64...';
-    MsBuild -what ($pocoInstallDir + '\Foundation\Foundation_x64_vs150.vcxproj') -task build -arch x64 -config debug_static_md -sdk $winsdk -toolset $customToolset
-    MsBuild -what ($pocoInstallDir + '\Foundation\Foundation_x64_vs150.vcxproj') -task build -arch x64 -config release_static_md -sdk $winsdk -toolset $customToolset
-    
-    # WriteConsole 'Building POCO C++ XML x86...';
-    # MsBuild -what ($pocoInstallDir + '\XML\XML_vs150.vcxproj') -task build -arch x86 -config debug_static_md -sdk $winsdk -toolset $customToolset
-    # MsBuild -what ($pocoInstallDir + '\XML\XML_vs150.vcxproj') -task build -arch x86 -config release_static_md -sdk $winsdk -toolset $customToolset
-
-    # WriteConsole 'Building POCO C++ XML x64...';
-    # MsBuild -what ($pocoInstallDir + '\XML\XML_x64_vs150.vcxproj') -task build -arch x64 -config debug_static_md -sdk $winsdk -toolset $customToolset
-    # MsBuild -what ($pocoInstallDir + '\XML\XML_x64_vs150.vcxproj') -task build -arch x64 -config release_static_md -sdk $winsdk -toolset $customToolset
-
-    # WriteConsole 'Building POCO C++ Util x86...';
-    # MsBuild -what ($pocoInstallDir + '\Util\Util_vs150.vcxproj') -task build -arch x86 -config debug_static_md -sdk $winsdk -toolset $customToolset
-    # MsBuild -what ($pocoInstallDir + '\Util\Util_vs150.vcxproj') -task build -arch x86 -config release_static_md -sdk $winsdk -toolset $customToolset
-
-    # WriteConsole 'Building POCO C++ Util x64...';
-    # MsBuild -what ($pocoInstallDir + '\Util\Util_x64_vs150.vcxproj') -task build -arch x64 -config debug_static_md -sdk $winsdk -toolset $customToolset
-    # MsBuild -what ($pocoInstallDir + '\Util\Util_x64_vs150.vcxproj') -task build -arch x64 -config release_static_md -sdk $winsdk -toolset $customToolset
-    
-    WriteConsole 'Building POCO C++ Data x86...';
-    MsBuild -what ($pocoInstallDir + '\Data\Data_vs150.vcxproj') -task build -arch x86 -config debug_static_md -sdk $winsdk -toolset $customToolset
-    MsBuild -what ($pocoInstallDir + '\Data\Data_vs150.vcxproj') -task build -arch x86 -config release_static_md -sdk $winsdk -toolset $customToolset
-    
-    WriteConsole 'Building POCO C++ Data x64...';
-    MsBuild -what ($pocoInstallDir + '\Data\Data_x64_vs150.vcxproj') -task build -arch x64 -config debug_static_md -sdk $winsdk -toolset $customToolset
-    MsBuild -what ($pocoInstallDir + '\Data\Data_x64_vs150.vcxproj') -task build -arch x64 -config release_static_md -sdk $winsdk -toolset $customToolset
-    
-    WriteConsole 'Building POCO C++ Data\ODBC x86...';
-    MsBuild -what ($pocoInstallDir + '\Data\ODBC\ODBC_vs150.vcxproj') -task build -arch x86 -config debug_static_md -sdk $winsdk -toolset $customToolset
-    MsBuild -what ($pocoInstallDir + '\Data\ODBC\ODBC_vs150.vcxproj') -task build -arch x86 -config release_static_m -sdk $winsdkd -toolset $customToolset
-    
-    WriteConsole 'Building POCO C++ Data\ODBC x64...';
-    MsBuild -what ($pocoInstallDir + '\Data\ODBC\ODBC_x64_vs150.vcxproj') -task build -arch x64 -config debug_static_md -sdk $winsdk -toolset $customToolset
-    MsBuild -what ($pocoInstallDir + '\Data\ODBC\ODBC_x64_vs150.vcxproj') -task build -arch x64 -config release_static_md -sdk $winsdk -toolset $customToolset
-    
-    ###
-    # clean-up:
-
-    Remove-Item ($pocoInstallDir + '\Foundation\obj')   -Recurse -Force;
-    Remove-Item ($pocoInstallDir + '\Foundation\obj64') -Recurse -Force;
-    # Remove-Item ($pocoInstallDir + '\XML\obj')          -Recurse -Force;
-    # Remove-Item ($pocoInstallDir + '\XML\obj64')        -Recurse -Force;
-    # Remove-Item ($pocoInstallDir + '\Util\obj')         -Recurse -Force;
-    # Remove-Item ($pocoInstallDir + '\Util\obj64')       -Recurse -Force;
-    Remove-Item ($pocoInstallDir + '\Data\obj')         -Recurse -Force;
-    Remove-Item ($pocoInstallDir + '\Data\obj64')       -Recurse -Force;
-    Remove-Item ($pocoInstallDir + '\Data\ODBC\obj')    -Recurse -Force;
-    Remove-Item ($pocoInstallDir + '\Data\ODBC\obj64')  -Recurse -Force;
-
-    Remove-Item $pocoZipFPath -Force;
+    if ($BUILD_X64)
+    {
+        WriteConsole 'Building POCO C++ Foundation x64...';
+        MsBuild -what ($pocoInstallDir + '\Foundation\Foundation_x64_vs150.vcxproj') -task build -arch x64 -config debug_static_md -sdk $winSdkVer
+        MsBuild -what ($pocoInstallDir + '\Foundation\Foundation_x64_vs150.vcxproj') -task build -arch x64 -config release_static_md -sdk $winSdkVer
+        
+        WriteConsole 'Building POCO C++ Data x64...';
+        MsBuild -what ($pocoInstallDir + '\Data\Data_x64_vs150.vcxproj') -task build -arch x64 -config debug_static_md -sdk $winSdkVer
+        MsBuild -what ($pocoInstallDir + '\Data\Data_x64_vs150.vcxproj') -task build -arch x64 -config release_static_md -sdk $winSdkVer
+        
+        WriteConsole 'Building POCO C++ Data\ODBC x64...';
+        MsBuild -what ($pocoInstallDir + '\Data\ODBC\ODBC_x64_vs150.vcxproj') -task build -arch x64 -config debug_static_md -sdk $winSdkVer
+        MsBuild -what ($pocoInstallDir + '\Data\ODBC\ODBC_x64_vs150.vcxproj') -task build -arch x64 -config release_static_md -sdk $winSdkVer    
+        
+        ###
+        # clean-up:
+        Remove-Item ($pocoInstallDir + '\Foundation\obj64') -Recurse -Force;
+        Remove-Item ($pocoInstallDir + '\Data\obj64')       -Recurse -Force;
+        Remove-Item ($pocoInstallDir + '\Data\ODBC\obj64')  -Recurse -Force;
+    }
+    if ($BUILD_X86)
+    {
+        WriteConsole 'Building POCO C++ Foundation x86...';
+        MsBuild -what ($pocoInstallDir + '\Foundation\Foundation_vs150.vcxproj') -task build -arch x86 -config debug_static_md -sdk $winSdkVer
+        MsBuild -what ($pocoInstallDir + '\Foundation\Foundation_vs150.vcxproj') -task build -arch x86 -config release_static_md -sdk $winSdkVer
+        
+        WriteConsole 'Building POCO C++ Data x86...';
+        MsBuild -what ($pocoInstallDir + '\Data\Data_vs150.vcxproj') -task build -arch x86 -config debug_static_md -sdk $winSdkVer
+        MsBuild -what ($pocoInstallDir + '\Data\Data_vs150.vcxproj') -task build -arch x86 -config release_static_md -sdk $winSdkVer
+        
+        WriteConsole 'Building POCO C++ Data\ODBC x86...';
+        MsBuild -what ($pocoInstallDir + '\Data\ODBC\ODBC_vs150.vcxproj') -task build -arch x86 -config debug_static_md -sdk $winSdkVer
+        MsBuild -what ($pocoInstallDir + '\Data\ODBC\ODBC_vs150.vcxproj') -task build -arch x86 -config release_static_m -sdk $winSdkVer
+        
+        ###
+        # clean-up:
+        Remove-Item ($pocoInstallDir + '\Foundation\obj') -Recurse -Force;
+        Remove-Item ($pocoInstallDir + '\Data\obj')       -Recurse -Force;
+        Remove-Item ($pocoInstallDir + '\Data\ODBC\obj')  -Recurse -Force;
+    }
 }
 
 
@@ -819,7 +814,7 @@ function Run ()
 
     if ($mustBuildBoost -eq 'yes')
     {
-        BuildBoostLibs;
+        InstallBoostLibs;
     }
 
     if ($mustBuildPoco -eq 'yes')
@@ -834,7 +829,7 @@ function Run ()
 #
 #    WriteConsole 'Building 3FD...';
 #    
-#    if ($arch.ToLower() -eq 'all')
+#    if ($arch -eq 'all')
 #    {
 #        MsBuild -what 3FD.sln -task $task -arch x86 -config ('Debug');
 #        MsBuild -what 3FD.sln -task $task -arch x86 -config ('Release');
