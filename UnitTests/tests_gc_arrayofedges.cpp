@@ -71,7 +71,7 @@ namespace unit_tests
         ASSERT_FALSE(array.HasRootEdges());
 
         uint32_t count(0);
-        array.ForEachRegular([&count](Vertex *vtx){ ++count; return true; });
+        array.ForEachRegular([&count](Vertex *){ ++count; return true; });
         ASSERT_EQ(0, count);
 
         // Create dummy data:
@@ -98,7 +98,7 @@ namespace unit_tests
         ASSERT_FALSE(array.HasRootEdges());
 
         count = 0;
-        array.ForEachRegular([&count](Vertex *vtx){ ++count; return true; });
+        array.ForEachRegular([&count](Vertex *){ ++count; return true; });
         ASSERT_EQ(n, count);
 
         // Add edges with root vertices:
@@ -118,7 +118,7 @@ namespace unit_tests
         ASSERT_FALSE(array.HasRootEdges());
 
         count = 0;
-        array.ForEachRegular([&count](Vertex *vtx){ ++count; return true; });
+        array.ForEachRegular([&count](Vertex *){ ++count; return true; });
         ASSERT_EQ(0, count);
 
         // Once again, add regular edges:
@@ -129,7 +129,7 @@ namespace unit_tests
         ASSERT_FALSE(array.HasRootEdges());
 
         count = 0;
-        array.ForEachRegular([&count](Vertex *vtx){ ++count; return true; });
+        array.ForEachRegular([&count](Vertex *){ ++count; return true; });
         ASSERT_EQ(n, count);
 
         // Once again, add root edges:
@@ -147,7 +147,7 @@ namespace unit_tests
         ASSERT_FALSE(array.HasRootEdges());
 
         count = 0;
-        array.ForEachRegular([&count](Vertex *vtx){ ++count; return true; });
+        array.ForEachRegular([&count](Vertex *){ ++count; return true; });
         ASSERT_EQ(n, count);
 
         // Remove regular edges:
@@ -158,7 +158,7 @@ namespace unit_tests
         ASSERT_FALSE(array.HasRootEdges());
 
         count = 0;
-        array.ForEachRegular([&count](Vertex *vtx){ ++count; return true; });
+        array.ForEachRegular([&count](Vertex *){ ++count; return true; });
         ASSERT_EQ(0, count);
 
         // Return vertices to the pool:

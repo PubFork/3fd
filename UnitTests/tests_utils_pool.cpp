@@ -26,7 +26,7 @@ namespace unit_tests
             dynMemPool = &ob;
         }
 
-        void *operator new(size_t size)
+        void *operator new(size_t)
         {
             return dynMemPool->GetFreeBlock();
         }

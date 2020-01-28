@@ -9,7 +9,9 @@
 #endif
 
 #ifdef _MSC_VER
-#   include <vld.h>
+#    if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
+#       include <vld.h>
+#    endif
 
     int wmain(int argc, wchar_t *argv[])
     {
