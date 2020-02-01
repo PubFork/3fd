@@ -1,6 +1,6 @@
-#include "stdafx.h"
+#include "pch.h"
 #include "utils.h"
-#include "exceptions.h"
+#include "3fd/core/exceptions.h"
 
 #include <cassert>
 #include <cstring>

@@ -1,7 +1,7 @@
 #ifndef UTILS_H // header guard
 #define UTILS_H
 
-#include "exceptions.h"
+#include "3fd/core/exceptions.h"
 
 #include <array>
 #include <cinttypes>
