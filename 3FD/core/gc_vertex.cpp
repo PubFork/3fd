@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "pch.h"
 #include "gc_vertex.h"
 
 namespace _3fd

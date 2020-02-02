@@ -1,10 +1,10 @@
 #ifndef GC_VERTEXSTORE_H // header guard
 #define GC_VERTEXSTORE_H
 
-#include "utils.h"
-#include "gc_common.h"
-#include "gc_vertex.h"
-#include "stx/btree_set.h"
+#include "3fd/utils/utils.h"
+#include "3fd/core/gc_common.h"
+#include "3fd/core/gc_vertex.h"
+#include "btree/stx/btree_set.h"
 
 namespace _3fd
 {

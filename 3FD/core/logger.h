@@ -1,9 +1,10 @@
 #ifndef _3FD_LOGGER_H
 #define _3FD_LOGGER_H
 
-#include "exceptions.h"
-#include "utils.h"
-#include "utils_lockfreequeue.h"
+#include <3fd/core/exceptions.h>
+#include <3fd/utils/utils.h>
+#include <3fd/utils/utils_lockfreequeue.h>
+
 #include <cinttypes>
 #include <fstream>
 #include <memory>
@@ -126,7 +127,7 @@ namespace core
 
         // Private implementations:
 
-        void WriteImpl(IAppException &ex, Priority prio);
+        void WriteImpl(const IAppException &ex, Priority prio);
 
 #if defined _3FD_PLATFORM_WIN32API || defined _3FD_PLATFORM_WINRT_UWP
         void WriteImpl(HRESULT hr, const char *message, const char *function, Priority prio);
@@ -148,7 +149,7 @@ namespace core
         /// </summary>
         /// <param name="message">The exception to log.</param>
         /// <param name="prio">The priority of the error.</param>
-        static void Write(IAppException &ex, Priority prio)
+        static void Write(const IAppException &ex, Priority prio)
         {
             Logger * const singleton = GetInstance();
             if (singleton != nullptr)
@@ -227,7 +228,7 @@ namespace core
     /// Writes a message to the log upon end of scope, appending a
     /// given suffix for success or failure depending on the situation.
     /// </summary>
-    class ScopedLogWrite : notcopiable
+    class ScopedLogWrite
     {
     private:
 
@@ -242,6 +243,8 @@ namespace core
         bool m_wasFailure;
 
     public:
+
+        ScopedLogWrite(const ScopedLogWrite &) = delete;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ScopedLogWrite"/> class.

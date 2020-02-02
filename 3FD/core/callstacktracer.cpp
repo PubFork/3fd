@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "pch.h"
 #include "callstacktracer.h"
 #include "configuration.h"
 #include "exceptions.h"
@@ -30,7 +30,7 @@ namespace core
     /// <param name="function">The function of the frame.</param>
     void CallStack::RegisterFrame(const char *file, 
                                     unsigned long line, 
-                                    const char *function) NOEXCEPT
+                                    const char *function) noexcept
     {
         m_stackFrames.push_back(
             Frame(file, function, line)
@@ -41,7 +41,7 @@ namespace core
     /// Pops the last added stack frame.
     /// </summary>
     /// <returns>Whether the stack log is empty after popping an entry from it.</returns>
-    bool CallStack::PopStackFrameEntry() NOEXCEPT
+    bool CallStack::PopStackFrameEntry() noexcept
     {
         m_stackFrames.pop_back();
         return m_stackFrames.empty();
@@ -50,11 +50,11 @@ namespace core
     // From path+fileName, gets only the file name
     static const char *GetFileName(const char *fullFileName)
     {
-#       ifdef _WIN32
+#   ifdef _WIN32
         const char filePathSeparator('\\');
-#       else
+#   else
         const char filePathSeparator('/');
-#       endif
+#   endif
         const char *fileNameSubstr = strrchr(fullFileName, filePathSeparator);
 
         if (fileNameSubstr != nullptr)
@@ -116,7 +116,7 @@ namespace core
                 std::ostringstream oss;
                 oss << "Registration of thread with call stack tracer failed with an exception - " << ex.ToString();
                 AttemptConsoleOutput(oss.str());
-                exit(EXIT_FAILURE);
+                exit(STATUS_FAIL);
             }
             catch(std::exception &ex)
             {
@@ -163,7 +163,7 @@ namespace core
     /// Pops the last added stack frame.
     /// If the stack become empty, this object will be destroyed.
     /// </summary>
-    void CallStackTracer::PopStackFrameEntry() NOEXCEPT
+    void CallStackTracer::PopStackFrameEntry() noexcept
     {
         if (callStack != nullptr)
         {

@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "pch.h"
 #include "gc_memorydigraph.h"
 
 #include <cassert>

@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "pch.h"
 #include "preprocessing.h"
 
 #if defined _3FD_PLATFORM_WIN32API || defined _3FD_PLATFORM_WINRT_UWP
@@ -250,7 +250,7 @@ namespace core
     /// </summary>
     /// <param name="message">The exception to log.</param>
     /// <param name="prio">The priority of the error.</param>
-    void Logger::WriteImpl(IAppException &ex, Priority prio)
+    void Logger::WriteImpl(const IAppException &ex, Priority prio)
     {
         if(ex.GetInnerException() != nullptr)
         {

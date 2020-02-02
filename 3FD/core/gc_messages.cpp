@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "pch.h"
 #include "gc_messages.h"
 
 namespace _3fd

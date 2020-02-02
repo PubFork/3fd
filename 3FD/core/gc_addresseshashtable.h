@@ -1,7 +1,7 @@
 #ifndef GC_ADDRESSESHASHTABLE_H // header guard
 #define GC_ADDRESSESHASHTABLE_H
 
-#include "gc_vertex.h"
+#include "3fd/core/gc_vertex.h"
 #include <vector>
 #include <cstdint>
 

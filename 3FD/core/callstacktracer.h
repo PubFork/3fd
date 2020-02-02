@@ -1,8 +1,7 @@
 #ifndef CALLSTACKTRACER_H
 #define CALLSTACKTRACER_H
 
-#include "base.h"
-#include "preprocessing.h"
+#include "3fd/core/preprocessing.h"
 #include <string>
 #include <vector>
 
@@ -12,10 +11,7 @@ namespace core
 {
     using std::string;
 
-    /////////////////////////////////////////
-    //  Early class declarations
-    /////////////////////////////////////////
-
+    // forward declarations:
     class StackTracer;
     class StackDeactivationTrigger;
 
@@ -23,7 +19,7 @@ namespace core
     /// <summary>
     /// Stores an history of procedure call events
     /// </summary>
-    class CallStack : notcopiable
+    class CallStack
     {
     private:
 
@@ -49,11 +45,13 @@ namespace core
 
         CallStack(size_t logInitialCap);
 
+        CallStack(const CallStack &) = delete;
+
         void RegisterFrame(const char *file, 
                             unsigned long line, 
-                            const char *function) NOEXCEPT;
+                            const char *function) noexcept;
 
-        bool PopStackFrameEntry() NOEXCEPT;
+        bool PopStackFrameEntry() noexcept;
 
         string GetReport();
     };
@@ -99,7 +97,7 @@ namespace core
                                 unsigned long line, 
                                 const char *function);
 
-        static void PopStackFrameEntry() NOEXCEPT;
+        static void PopStackFrameEntry() noexcept;
 
         static string GetStackReport();
     };

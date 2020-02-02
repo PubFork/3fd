@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "pch.h"
 #include "exceptions.h"
 #include <codecvt>
 #include <sstream>
@@ -208,7 +208,6 @@ namespace _3fd
             return transcoder.to_bytes(woss.str());
         }
 #    endif
-
 #endif
     }// end of namespace core
 }// end of namespace _3fd

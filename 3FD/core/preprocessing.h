@@ -11,9 +11,6 @@
 
 #ifdef _MSC_VER // Microsoft Visual Studio:
 #   define INTFOPT __declspec(novtable)
-#   define NOEXCEPT           noexcept
-#   define thread_local_decl  thread_local
-#   define thread_local_def   thread_local
 
 #   if _MSC_VER >= 1900
 #       define _3FD_HAS_STLOPTIMALLOC
@@ -21,21 +18,16 @@
 #else
     // Other Compilers:
 #   define INTFOPT
-#   define _ASSERTE             assert
+#   define _ASSERTE    assert
 #   include <cassert>
-#   define NOEXCEPT             noexcept
-#   define thread_local_decl    thread_local
-#   define thread_local_def     thread_local
 #endif
 
 // Platform support for particular modules/features/resources:
 #ifdef _WIN32
-#   ifndef _USING_V110_SDK71_
-#        include <winapifamily.h>
-#   endif
+#   include <winapifamily.h>
 #   define _newLine_ "\n"
 
-#   if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP || defined _USING_V110_SDK71_
+#   if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
         // Windows Desktop Apps only:
 #       define _3FD_PLATFORM_WIN32API
 #       define _3FD_POCO_SUPPORT

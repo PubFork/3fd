@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "pch.h"
 #include "gc_arrayofedges.h"
 
 #include "preprocessing.h"

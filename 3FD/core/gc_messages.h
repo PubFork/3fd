@@ -1,7 +1,7 @@
 #ifndef GC_MESSAGES_H // header guard
 #define GC_MESSAGES_H
 
-#include "gc.h"
+#include "3fd/core/gc.h"
 
 namespace _3fd
 {
@@ -29,7 +29,7 @@ namespace memory
         NewObjectMsg(void *sptrObjaddr,
                         void *pointedAddr,
                         size_t blockSize,
-                        FreeMemProc freeMemCallback) NOEXCEPT :
+                        FreeMemProc freeMemCallback) noexcept :
             m_sptrObjectAddr(sptrObjaddr),
             m_pointedAddr(pointedAddr),
             m_blockSize(blockSize),
@@ -65,7 +65,7 @@ namespace memory
         /// The address of the <see cref="sptr"/> object in
         /// the right side of the assignment operation.
         /// </param>
-        ReferenceUpdateMsg(void *leftSptrObjAddr, void *rightSptrObjAddr) NOEXCEPT :
+        ReferenceUpdateMsg(void *leftSptrObjAddr, void *rightSptrObjAddr) noexcept :
             m_leftSptrObjAddr(leftSptrObjAddr),
             m_rightSptrObjAddr(rightSptrObjAddr)
         {}
@@ -117,7 +117,7 @@ namespace memory
         /// The memory address of the <see cref="sptr"/> object
         /// whose referred object experienced failure during construction.
         /// </param>
-        AbortedObjectMsg(void *sptrObjAddr) NOEXCEPT :
+        AbortedObjectMsg(void *sptrObjAddr) noexcept :
             m_sptrObjAddr(sptrObjAddr)
         {}
 
@@ -137,7 +137,7 @@ namespace memory
 
     public:
 
-        SptrRegistrationMsg(void *sptrObjAddr, void *pointedAddr) NOEXCEPT :
+        SptrRegistrationMsg(void *sptrObjAddr, void *pointedAddr) noexcept :
             m_sptrObjAddr(sptrObjAddr),
             m_pointedAddr(pointedAddr)
         {}
@@ -158,7 +158,7 @@ namespace memory
 
     public:
 
-        SptrCopyRegistrationMsg(void *leftSptrObjAddr, void *rightSptrObjAddr) NOEXCEPT :
+        SptrCopyRegistrationMsg(void *leftSptrObjAddr, void *rightSptrObjAddr) noexcept :
             m_leftSptrObjAddr(leftSptrObjAddr),
             m_rightSptrObjAddr(rightSptrObjAddr)
         {}
@@ -178,13 +178,12 @@ namespace memory
 
     public:
 
-        SptrUnregistrationMsg(void *sptrObjAddr) NOEXCEPT :
+        SptrUnregistrationMsg(void *sptrObjAddr) noexcept :
             m_sptrObjAddr(sptrObjAddr)
         {}
 
         virtual void Execute(MemoryDigraph &graph) override;
     };
-
 
 }// end of memory
 }// end of namespace _3fd

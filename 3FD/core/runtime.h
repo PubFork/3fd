@@ -1,8 +1,8 @@
 #ifndef RUNTIME_H
 #define RUNTIME_H
 
-#include "preprocessing.h"
-#include "callstacktracer.h"
+#include "3fd/core/preprocessing.h"
+#include "3fd/core/callstacktracer.h"
 #include "logger.h"
 #include <string>
 
@@ -14,7 +14,7 @@ namespace core
     /// An object to be allocated on the stack which is responsible for 
     /// starting or stopping the framework instance for the current thread.
     /// </summary>
-    class FrameworkInstance : notcopiable
+    class FrameworkInstance
     {
     private:
 
@@ -23,8 +23,10 @@ namespace core
 #ifdef _3FD_PLATFORM_WIN32API
         bool m_isComLibInitialized;
 #endif
-        
+
     public:
+
+        FrameworkInstance(const FrameworkInstance &) = delete;
 
 #ifdef _3FD_PLATFORM_WIN32API
 

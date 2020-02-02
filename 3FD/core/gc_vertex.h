@@ -1,10 +1,10 @@
 #ifndef GC_VERTEX_H // header guard
 #define GC_VERTEX_H
 
-#include "utils.h"
-#include "gc_common.h"
-#include "gc_memaddress.h"
-#include "gc_arrayofedges.h"
+#include "3fd/utils/utils.h"
+#include "3fd/core/gc_common.h"
+#include "3fd/core/gc_memaddress.h"
+#include "3fd/core/gc_arrayofedges.h"
 
 #include <functional>
 #include <cstdint>

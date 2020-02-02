@@ -1,4 +1,3 @@
-#include "base.h"
 #include <memory>
 #include <mutex>
 
@@ -15,7 +14,7 @@ namespace core
     /// <summary>
     /// Takes care of the framework's DLL dependencies.
     /// </summary>
-    class Dependencies : notcopiable
+    class Dependencies
     {
     private:
             
@@ -25,6 +24,8 @@ namespace core
         Dependencies();
 
     public:
+
+        Dependencies(const Dependencies &) = delete;
 
         ~Dependencies(); // must be public so the 'unique_ptr<>' holding the single object can destroy it
 
@@ -39,5 +40,6 @@ namespace core
         HINSTANCE &OpenCLDllHandle;
 #endif
     };
-}
-}
+
+}// namespace core
+}// namespace _3fd
