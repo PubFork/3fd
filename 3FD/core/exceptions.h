@@ -1,7 +1,7 @@
 #ifndef EXCEPTIONS_H
 #define EXCEPTIONS_H
 
-#include "3fd/core/callstacktracer.h"
+#include <3fd/core/callstacktracer.h>
 #include <string>
 #include <sstream>
 #include <exception>

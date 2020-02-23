@@ -1,13 +1,13 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-#include "3fd/core/preprocessing.h"
+#include <3fd/core/preprocessing.h>
 #include <cinttypes>
-#include <memory>
-#include <string>
 #include <chrono>
-#include <mutex>
 #include <map>
+#include <memory>
+#include <mutex>
+#include <string>
 
 namespace _3fd
 {

@@ -1,9 +1,9 @@
 #ifndef GC_H
 #define GC_H
 
-#include "3fd/core/gc_memorydigraph.h"
-#include "3fd/utils/utils.h"
-#include "3fd/utils/utils_lockfreequeue.h"
+#include <3fd/core/gc_memorydigraph.h>
+#include <3fd/utils/utils.h>
+#include <3fd/utils/utils_lockfreequeue.h>
 
 #include <exception>
 #include <thread>

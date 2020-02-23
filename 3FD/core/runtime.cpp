@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "runtime.h"
-#include "exceptions.h"
 #include "callstacktracer.h"
-#include "logger.h"
+#include "exceptions.h"
 #include "gc.h"
+#include "logger.h"
+#include "runtime.h"
 
 #ifdef _WIN32
 #   include <roapi.h>
@@ -11,12 +11,12 @@
 
 #ifdef _3FD_PLATFORM_WINRT
 #    include <winrt\Windows.Storage.h>
-#    include "sqlite3.h"
+#    include <sqlite3\sqlite3.h>
 #endif
 
+#include <array>
 #include <codecvt>
 #include <sstream>
-#include <array>
 
 namespace _3fd
 {

@@ -1,7 +1,7 @@
 #ifndef GC_MESSAGES_H // header guard
 #define GC_MESSAGES_H
 
-#include "3fd/core/gc.h"
+#include <3fd/core/gc.h>
 
 namespace _3fd
 {

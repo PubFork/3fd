@@ -1,8 +1,8 @@
 #ifndef SPTR_H // header guard
 #define SPTR_H
 
-#include "gc.h"
-#include "gc_common.h"
+#include <3fd/core/gc.h>
+#include <3fd/core/gc_common.h>
 #include <functional>
 
 // A macro through which the client code constructs garbage collected objects and assigns them to a safe pointer

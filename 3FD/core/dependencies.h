@@ -1,3 +1,6 @@
+#ifndef DEPENDENCIES_H
+#define DEPENDENCIES_H
+
 #include <memory>
 #include <mutex>
 
@@ -43,3 +46,5 @@ namespace core
 
 }// namespace core
 }// namespace _3fd
+
+#endif // end of header guard

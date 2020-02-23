@@ -1,7 +1,7 @@
 #ifndef CALLSTACKTRACER_H
 #define CALLSTACKTRACER_H
 
-#include "3fd/core/preprocessing.h"
+#include <3fd/core/preprocessing.h>
 #include <string>
 #include <vector>
 

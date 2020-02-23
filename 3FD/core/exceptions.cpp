@@ -177,7 +177,7 @@ namespace _3fd
         }
 #   endif
 
-#    ifdef _3FD_PLATFORM_WINRT // Store Apps only:
+#   ifdef _3FD_PLATFORM_WINRT // Store Apps only:
         /// <summary>
         /// Gets the details from a WinRT exception.
         /// </summary>
@@ -192,12 +192,13 @@ namespace _3fd
             wcsncpy(buffer.data(), ex.message().data(), buffer.size());
             buffer[buffer.size() - 1] = L'\0';
 
-            auto token = wcstok(buffer.data(), L"\r\n");
+            wchar_t *ctx(nullptr);
+            auto token = wcstok(buffer.data(), L"\r\n", &ctx);
             while (true)
             {
                 woss << token;
 
-                token = wcstok(nullptr, L"\r\n");
+                token = wcstok(nullptr, L"\r\n", &ctx);
                 if (token != nullptr)
                     woss << L" - ";
                 else
@@ -207,7 +208,7 @@ namespace _3fd
             std::wstring_convert<std::codecvt_utf8<wchar_t>> transcoder;
             return transcoder.to_bytes(woss.str());
         }
-#    endif
+#   endif
 #endif
     }// end of namespace core
 }// end of namespace _3fd

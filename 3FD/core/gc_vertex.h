@@ -1,14 +1,14 @@
 #ifndef GC_VERTEX_H // header guard
 #define GC_VERTEX_H
 
-#include "3fd/utils/utils.h"
-#include "3fd/core/gc_common.h"
-#include "3fd/core/gc_memaddress.h"
-#include "3fd/core/gc_arrayofedges.h"
+#include <3fd/utils/utils.h>
+#include <3fd/core/gc_common.h>
+#include <3fd/core/gc_memaddress.h>
+#include <3fd/core/gc_arrayofedges.h>
 
-#include <functional>
 #include <cstdint>
 #include <cstdlib>
+#include <functional>
 
 namespace _3fd
 {

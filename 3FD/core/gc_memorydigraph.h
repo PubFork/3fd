@@ -14,8 +14,8 @@
     approach is not vulnerable to cyclic references, unlike reference counting.
 */
 
-#include "3fd/core/gc_vertexstore.h"
-#include "3fd/core/gc_addresseshashtable.h"
+#include <3fd/core/gc_vertexstore.h>
+#include <3fd/core/gc_addresseshashtable.h>
 
 namespace _3fd
 {

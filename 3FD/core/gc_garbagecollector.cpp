@@ -7,12 +7,12 @@
 #include "configuration.h"
 #include "logger.h"
 
-#include "3fd/utils/utils.h"
-#include <array>
-#include <sstream>
-#include <iomanip>
+#include <3fd/utils/utils.h>
 #include <algorithm>
+#include <array>
 #include <condition_variable>
+#include <iomanip>
+#include <sstream>
 
 namespace _3fd
 {

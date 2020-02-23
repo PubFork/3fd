@@ -1,9 +1,9 @@
-#include "stdafx.h"
+#include "pch.h"
 #include "logger.h"
 #include "configuration.h"
 #include "callstacktracer.h"
-#include "utils_winrt.h"
 
+#include <3fd/utils/utils_winrt.h>
 #include <winrt\Windows.Storage.h>
 #include <winrt\Windows.Storage.Compression.h>
 #include <array>
