@@ -37,7 +37,7 @@ namespace sqlite
             // Query preparation:
             int status = sqlite3_prepare_v2(m_database.GetHandle(),
                                             query,
-                                            length + 1,
+                                            static_cast<int>(length + 1),
                                             &m_stmtHandle,
                                             nullptr);
             ++attempts;
@@ -276,7 +276,7 @@ namespace sqlite
         int status = sqlite3_bind_text(m_stmtHandle,
                                         GetParamIndex(m_stmtHandle, paramName), 
                                         text.data(), 
-                                        text.size(), 
+                                        static_cast<int>(text.size()),
                                         SQLITE_TRANSIENT);
         if(status != SQLITE_OK)
         {
