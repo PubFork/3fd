@@ -1,7 +1,5 @@
-#include "stdafx.h"
+#include "pch.h"
 #include "utils_winrt.h"
-#include "exceptions.h"
-#include "logger.h"
 
 #include <shcore.h>
 #include <wrl.h>
@@ -10,11 +8,11 @@
 #include <winrt\Windows.ApplicationModel.h>
 #include <winrt\Windows.UI.Xaml.Controls.h>
 
+#include <algorithm>
 #include <array>
-#include <limits>
 #include <cassert>
 #include <codecvt>
-#include <algorithm>
+#include <limits>
 
 #undef min
 #undef max
@@ -51,7 +49,7 @@ namespace utils
         /// to use an already existing buffer allocated from any valid store/heap.
         /// </summary>
         /// <returns>The remaining number of bytes to read from or write into the buffer.</returns>
-        ULONG GetRemainingNumBytes() const { return end() - m_curr; }
+        ULONG GetRemainingNumBytes() const { return static_cast<ULONG>(end() - m_curr); }
 
     public:
 

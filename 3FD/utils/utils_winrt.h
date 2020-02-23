@@ -1,9 +1,8 @@
 #ifndef UTILS_WINRT_H // header guard
 #define UTILS_WINRT_H
 
-#include "base.h"
-#include "exceptions.h"
-#include "logger.h"
+#include <3fd/core/exceptions.h>
+#include <3fd/core/logger.h>
 
 #include <winrt\Windows.Storage.Streams.h>
 #include <functional>

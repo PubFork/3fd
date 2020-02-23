@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "utils.h"
-#include "3fd/core/exceptions.h"
-#include "3fd/core/logger.h"
+#include <3fd/core/exceptions.h>
+#include <3fd/core/logger.h>
 
 #include <sstream>
 #include <thread>
