@@ -1,7 +1,7 @@
-#include "stdafx.h"
-#include "runtime.h"
-#include "gc_vertexstore.h"
-#include "sptr.h"
+#include "pch.h"
+#include <3fd/core/runtime.h>
+#include <3fd/core/gc_vertexstore.h>
+#include <3fd/core/sptr.h>
 
 #include <vector>
 

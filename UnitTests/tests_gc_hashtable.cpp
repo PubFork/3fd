@@ -1,7 +1,7 @@
-#include "stdafx.h"
-#include "runtime.h"
-#include "gc_addresseshashtable.h"
-#include "gc_vertex.h"
+#include "pch.h"
+#include <3fd/core/runtime.h>
+#include <3fd/core/gc_addresseshashtable.h>
+#include <3fd/core/gc_vertex.h>
 
 #include <vector>
 

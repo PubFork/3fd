@@ -1,6 +1,6 @@
-#include "stdafx.h"
-#include "gc_arrayofedges.h"
-#include "gc_vertex.h"
+#include "pch.h"
+#include <3fd/core/gc_arrayofedges.h>
+#include <3fd/core/gc_vertex.h>
 
 #include <vector>
 

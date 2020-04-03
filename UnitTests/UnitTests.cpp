@@ -1,8 +1,8 @@
 // UnitTests.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
-#include "preprocessing.h"
+#include "pch.h"
+#include <3fd/core/preprocessing.h>
 
 #ifdef _3FD_CONSOLE_AVAILABLE
 #    include <iostream>

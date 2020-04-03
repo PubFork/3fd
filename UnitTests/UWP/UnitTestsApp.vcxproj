@@ -242,11 +242,6 @@
     <ClCompile Include="..\UnitTests.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\3FD\3FD.WinRT.UWP.vcxproj">
-      <Project>{793ac4e5-04ff-43c1-89f9-6d7212264a36}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\..\3FD\preprocessing.h" />
     <ClInclude Include="..\..\3FD\stdafx.h" />
   </ItemGroup>
