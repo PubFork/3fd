@@ -388,7 +388,7 @@ namespace rpc
 
         m_credStructure.dwVersion = SCHANNEL_CRED_VERSION;
         m_credStructure.cCreds = 1;
-        m_credStructure.paCred = new PCCERT_CONTEXT[1]{ certCtxtHandle };
+        m_credStructure.paCred = dbg_new PCCERT_CONTEXT[1]{ certCtxtHandle };
 
         if (strongerSec)
         {
@@ -429,7 +429,7 @@ namespace rpc
 
         m_credStructure.dwVersion = SCHANNEL_CRED_VERSION;
         m_credStructure.cCreds = 1;
-        m_credStructure.paCred = new PCCERT_CONTEXT[1]{ certCtxtHandle };
+        m_credStructure.paCred = dbg_new PCCERT_CONTEXT[1]{ certCtxtHandle };
         m_credStructure.hRootStore = certStoreHandle;
 
         if (strongerSec)

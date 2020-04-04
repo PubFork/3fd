@@ -94,7 +94,7 @@ namespace opencl
             // Allocate enough memory for each binary:
             for (auto qtBytes : binProgSizes)
             {
-                auto byteArray = new uint8_t[qtBytes];
+                auto byteArray = dbg_new uint8_t[qtBytes];
                 progBinaries.emplace_back(byteArray);
                 progBinariesPtrs.push_back(byteArray);
             }

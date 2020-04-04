@@ -7,8 +7,18 @@
 #ifndef PCH_H
 #define PCH_H
 
-#    ifdef _MSC_VER // Visual Studio:
-#        include <winapifamily.h>
+#   ifdef _MSC_VER // Visual Studio:
+#       include <winapifamily.h>
+
+#       ifndef NDEBUG // CRT support for memory leak detection:
+#           define _DEBUG
+#           define _CRTDBG_MAP_ALLOC
+#           include <stdlib.h>
+#           include <crtdbg.h>
+#           define dbg_new new (_NORMAL_BLOCK , __FILE__ , __LINE__)
+#       else
+#           define dbg_new new
+#       endif
 
 // Windows Desktop App:
 #        if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
@@ -47,11 +57,10 @@
 #        endif
 
 #    else // QtCreator & other IDE's:
-
 #       ifdef TESTING // Test application:
 #           include <gtest/gtest.h>
 #       endif
 
 #   endif
 
-#endif //PCH_H
+#endif // end of header guard

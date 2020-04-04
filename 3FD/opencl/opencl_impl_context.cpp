@@ -325,7 +325,7 @@ namespace opencl
                 ifs.seekg(0, std::ios::beg); // rewind
 
                 // Read the file:
-                auto buffer = new uint8_t[qtBytes];
+                auto buffer = dbg_new uint8_t[qtBytes];
                 binariesSmartPtrs.emplace_back(buffer);
                 binariesCPtrs.push_back(buffer);
                 binariesSizes.push_back(qtBytes);

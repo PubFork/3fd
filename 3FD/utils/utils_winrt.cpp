@@ -242,9 +242,16 @@ namespace utils
             if (object == nullptr)
                 return STG_E_INVALIDPOINTER;
 
-            *object = new (std::nothrow) ComStreamFromBuffer(m_data, m_nBytes);
+            try
+            {
+                *object = new ComStreamFromBuffer(m_data, m_nBytes);
+            }
+            catch (std::bad_alloc &)
+            {
+                return STG_E_INSUFFICIENTMEMORY;
+            }
 
-            return *object != nullptr ? S_OK : STG_E_INSUFFICIENTMEMORY;
+            return S_OK;
         }
 
 
