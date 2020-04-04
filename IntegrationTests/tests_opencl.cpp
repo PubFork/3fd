@@ -1,7 +1,7 @@
-#include "stdafx.h"
-#include "runtime.h"
-#include "opencl.h"
-#include "configuration.h"
+#include "pch.h"
+#include <3fd/core/configuration.h>
+#include <3fd/core/runtime.h>
+#include <3fd/opencl/opencl.h>
 
 #include <map>
 #include <list>

@@ -1,7 +1,8 @@
-#include "stdafx.h"
-#include "runtime.h"
-#include "sqlite.h"
-#include "utils.h"
+#include "pch.h"
+#include <3fd/core/runtime.h>
+#include <3fd/sqlite/sqlite.h>
+#include <3fd/utils/utils.h>
+
 #include <map>
 #include <list>
 #include <array>
@@ -11,7 +12,7 @@
 #include <random>
 
 #ifdef _3FD_PLATFORM_WINRT
-#    include "utils_winrt.h"
+#    include <3fd/utils/utils_winrt.h>
 #    include <codecvt>
 #endif
 

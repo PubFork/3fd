@@ -1,7 +1,8 @@
-#include "stdafx.h"
-#include "runtime.h"
-#include "broker.h"
-#include "configuration.h"
+#include "pch.h"
+#include <3fd/core/runtime.h>
+#include <3fd/core/configuration.h>
+#include <3fd/broker/broker.h>
+
 #include <algorithm>
 
 #define UNDEF_BROKER_DB_CONNSTR "CONNECTION STRING FOR BROKER BACK-END IS NOT DEFINED IN XML CONFIGURATION"

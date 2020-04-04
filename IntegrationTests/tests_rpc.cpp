@@ -1,7 +1,7 @@
-#include "stdafx.h"
-#include "runtime.h"
-#include "callstacktracer.h"
-#include "rpc_helpers.h"
+#include "pch.h"
+#include <3fd/core/runtime.h>
+#include <3fd/core/callstacktracer.h>
+#include <3fd/rpc/rpc_helpers.h>
 #include "rpc_test_shared.h"
 
 #ifdef _WIN64

@@ -1,6 +1,7 @@
-#include "stdafx.h"
-#include "runtime.h"
-#include "exceptions.h"
+#include "pch.h"
+#include <3fd/core/runtime.h>
+#include <3fd/core/exceptions.h>
+
 #include <map>
 #include <list>
 #include <array>

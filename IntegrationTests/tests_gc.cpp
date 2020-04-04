@@ -1,6 +1,7 @@
-#include "stdafx.h"
-#include "runtime.h"
-#include "sptr.h"
+#include "pch.h"
+#include <3fd/core/runtime.h>
+#include <3fd/core/sptr.h>
+
 #include <map>
 #include <list>
 #include <array>

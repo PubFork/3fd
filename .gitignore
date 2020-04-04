@@ -233,3 +233,12 @@ NEXT COMMIT MESSAGE.txt
 *.cmake
 CMakeCache.txt
 CMakeFiles/
+
+#############
+## Tests generate data
+#############
+
+*.dat
+*.jfm
+*.mdf
+*.ldf

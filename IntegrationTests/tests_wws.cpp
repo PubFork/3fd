@@ -1,7 +1,7 @@
-#include "stdafx.h"
-#include "runtime.h"
-#include "utils.h"
-#include "web_wws_webservicehost.h"
+#include "pch.h"
+#include <3fd/core/runtime.h>
+#include <3fd/utils/utils.h>
+#include <3fd/wws/web_wws_webservicehost.h>
 #include "calculator.wsdl.h"
 
 #include <chrono>

@@ -1,6 +1,7 @@
-#include "stdafx.h"
-#include "runtime.h"
-#include "isam.h"
+#include "pch.h"
+#include <3fd/core/runtime.h>
+#include <3fd/isam/isam.h>
+
 #include <map>
 #include <list>
 #include <array>
@@ -486,7 +487,7 @@ namespace integration_tests
 
                 uint32_t defAmount = 0;
                 columns.emplace_back("amount", DataType::UInt32, NotNull);
-                columns.back().default = AsInputParam(defAmount); // default value for amount
+                columns.back().defaultValue = AsInputParam(defAmount); // default value for amount
 
                 columns.emplace_back("description", DataType::LargeText, NotNull);
                 columns.back().codePage = CodePage::Unicode; // code page is 'english' unless specified
@@ -1404,7 +1405,7 @@ namespace integration_tests
                 columns.emplace_back("timestamp", DataType::DateTime, NotNull);
                 columns.emplace_back("value", DataType::Float64, NotNull);
                 columns.emplace_back("status", DataType::UByte, NotNull);
-                columns.back().default = AsInputParam((uint8_t)0); // default value for status
+                columns.back().defaultValue = AsInputParam((uint8_t)0); // default value for status
 
                 // Define the timestamp-index:
                 std::vector<ITable::IndexDefinition> indexes;
