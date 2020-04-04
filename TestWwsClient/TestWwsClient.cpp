@@ -1,9 +1,9 @@
 // TestWwsClient.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
-#include "exceptions.h"
-#include "logger.h"
+#include "pch.h"
+#include <3fd/core/exceptions.h>
+#include <3fd/core/logger.h>
 #include <exception>
 #include <iostream>
 #include <vld.h>
