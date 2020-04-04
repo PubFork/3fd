@@ -4,7 +4,7 @@
 #include <string>
 
 #ifdef _3FD_PLATFORM_WINRT
-#   include "utils_winrt.h"
+#   include <3fd/utils/utils_winrt.h>
 #endif
 
 namespace _3fd

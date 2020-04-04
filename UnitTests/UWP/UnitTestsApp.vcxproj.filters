@@ -11,6 +11,9 @@
     <Filter Include="Ported">
       <UniqueIdentifier>{74acfff7-a67d-44a3-821f-d95fef17c21d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="pch">
+      <UniqueIdentifier>{1e284e85-cef3-4ec3-bcae-f91da6d65e08}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\tests_gc_arrayofedges.cpp">
@@ -43,8 +46,8 @@
     <ClCompile Include="..\UnitTests.cpp">
       <Filter>Ported</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\3FD\stdafx.cpp">
-      <Filter>Ported</Filter>
+    <ClCompile Include="..\pch.cpp">
+      <Filter>pch</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -75,13 +78,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="UnitTestsApp_TemporaryKey.pfx" />
+    <None Include="a2e1e6a8-499e-45a2-b51c-c26d343dbae3.3fd.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\3FD\stdafx.h">
-      <Filter>Ported</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\3FD\preprocessing.h">
-      <Filter>Ported</Filter>
+    <ClInclude Include="..\pch.h">
+      <Filter>pch</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

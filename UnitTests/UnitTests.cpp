@@ -3,31 +3,36 @@
 
 #include "pch.h"
 #include <3fd/core/preprocessing.h>
-
-#ifdef _3FD_CONSOLE_AVAILABLE
-#    include <iostream>
-#endif
+#include <iostream>
 
 #ifdef _MSC_VER
-#    if WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
+#   ifdef _3FD_PLATFORM_WIN32API // Win32 Console:
 #       include <vld.h>
-#    endif
 
+    // Win32 Console:
     int wmain(int argc, wchar_t *argv[])
     {
-#   ifdef _3FD_CONSOLE_AVAILABLE
-        std::cout << "Running main() from UnitTests.cpp\n";
-#   endif
+        std::cout << "Running wmain() from UnitTests.cpp\n";
         testing::InitGoogleTest(&argc, argv);
         return RUN_ALL_TESTS();
     }
-#else
-    int main(int argc, char *argv[])
+
+#   else // UWP Console:
+    int main()
     {
-#   ifdef _3FD_CONSOLE_AVAILABLE
         std::cout << "Running main() from UnitTests.cpp\n";
-#   endif
-        testing::InitGoogleTest(&argc, argv);
-        return RUN_ALL_TESTS();
+        testing::InitGoogleTest(&__argc, __argv);
+        int rc = RUN_ALL_TESTS();
+        getchar();
+        return rc;
     }
+#   endif
+
+#else // POSIX:
+int main(int argc, char *argv[])
+{
+    std::cout << "Running main() from UnitTests.cpp\n";
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
 #endif
