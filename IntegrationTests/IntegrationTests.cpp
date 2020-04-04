@@ -4,25 +4,36 @@
 #include <exception>
 #include <iostream>
 
-#ifndef _3FD_PLATFORM_WINRT
-#   ifdef _MSC_VER
-#   include <vld.h>
+#ifdef _MSC_VER
+#   ifdef _3FD_PLATFORM_WIN32API // Win32 Console:
+#       include <vld.h>
 
-    int wmain(int argc, wchar_t *argv[])
-    {
-        std::cout << "Running main() from \'IntegrationTests.cpp\'\n";
-        testing::InitGoogleTest(&argc, argv);
-        return RUN_ALL_TESTS();
-    }
-#   else
+// Win32 Console:
+int wmain(int argc, wchar_t *argv[])
+{
+    std::cout << "Running wmain() from IntegrationTests.cpp\n";
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
 
-    int main(int argc, char *argv[])
-    {
-        std::cout << "Running main() from \'IntegrationTests.cpp\'\n";
-        testing::InitGoogleTest(&argc, argv);
-        return RUN_ALL_TESTS();
-    }
+#   else // UWP Console:
+int main()
+{
+    std::cout << "Running main() from IntegrationTests.cpp\n";
+    testing::InitGoogleTest(&__argc, __argv);
+    int rc = RUN_ALL_TESTS();
+    getchar();
+    return rc;
+}
 #   endif
+
+#else // POSIX:
+int main(int argc, char *argv[])
+{
+    std::cout << "Running main() from IntegrationTests.cpp\n";
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
 #endif
 
 namespace _3fd

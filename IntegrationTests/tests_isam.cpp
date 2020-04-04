@@ -13,10 +13,12 @@
 #include <functional>
 
 #ifdef _3FD_PLATFORM_WINRT
-#    include "utils_winrt.h"
-#    define FILE_PATH(fileName)    _3fd::utils::WinRTExt::GetFilePathUtf8(fileName, _3fd::utils::WinRTExt::FileLocation::LocalFolder)
+#   include <3fd\utils\utils_winrt.h>
+#   include <winrt\Windows.System.h>
+
+#   define FILE_PATH(fileName)    _3fd::utils::WinRTExt::GetFilePathUtf8(fileName, _3fd::utils::WinRTExt::FileLocation::LocalFolder)
 #else
-#    define FILE_PATH(fileName)    fileName
+#   define FILE_PATH(fileName)    fileName
 #endif
 
 namespace _3fd
@@ -1343,7 +1345,7 @@ namespace integration_tests
                 auto transaction = conn.BeginTransaction();
 
                 // Go though all the records and remove each one of them:
-                auto numRecords = cursor.ScanAll(IdxBarCode, [this, &cursor] (RecordReader &rec)
+                auto numRecords = cursor.ScanAll(IdxBarCode, [this, &cursor] (RecordReader &)
                 {
                     cursor.DeleteCurrentRecord();
                     return true;
@@ -1435,7 +1437,7 @@ namespace integration_tests
 
 #   ifdef _3FD_PLATFORM_WINRT
                 const auto appMemUsageLimitInGB =
-                    Windows::System::MemoryManager::AppMemoryUsageLimit / pow(1024, 3);
+                    winrt::Windows::System::MemoryManager::AppMemoryUsageLimit() / pow(1024, 3);
 
                 int maxLoad = (appMemUsageLimitInGB < 4) ? 1e4 : 4e4;
 #   else
