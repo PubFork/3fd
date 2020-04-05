@@ -100,7 +100,7 @@ namespace core
         /// Moves this instance exporting the resources to a new object dynamically allocated.
         /// </summary>
         /// <returns>A new exception object built from the resources of this object.</returns>
-        virtual AppException *Move() override { return new AppException(std::move(*this)); }
+        virtual AppException *Move() override { return dbg_new AppException(std::move(*this)); }
 
         /// <summary>
         /// Gets the inner exception.

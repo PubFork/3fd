@@ -149,7 +149,7 @@ namespace core
             std::lock_guard<std::mutex> lock(singleInstanceCreationMutex);
 
             if(uniqueObjectPtr == nullptr)
-                uniqueObjectPtr = new Logger (id, logToConsole);
+                uniqueObjectPtr = dbg_new Logger (id, logToConsole);
         }
         catch(std::system_error &ex)
         {

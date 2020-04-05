@@ -11,7 +11,6 @@
 #       include <winapifamily.h>
 
 #       ifndef NDEBUG // CRT support for memory leak detection:
-#           define _DEBUG
 #           define _CRTDBG_MAP_ALLOC
 #           include <stdlib.h>
 #           include <crtdbg.h>

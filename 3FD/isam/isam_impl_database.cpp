@@ -58,7 +58,7 @@ namespace isam
                     return oss.str();
                 });
 
-                return new Table(this, jetTable, name);
+                return dbg_new Table(this, jetTable, name);
             }
         }
         catch (core::IAppException &)
@@ -241,7 +241,7 @@ namespace isam
                 });
             }
 
-            return new Table(this, jetTable.tableid, name);
+            return dbg_new Table(this, jetTable.tableid, name);
         }
         catch (core::IAppException &)
         {
@@ -308,7 +308,7 @@ namespace isam
                 return oss.str();
             });
 
-            return new Table(this, jetTable.tableid, name);
+            return dbg_new Table(this, jetTable.tableid, name);
         }
         catch (core::IAppException &)
         {
@@ -388,7 +388,7 @@ namespace isam
                 return oss.str();
             });
 
-            return new TableCursorImpl(table, jetTable, m_jetSession);
+            return dbg_new TableCursorImpl(table, jetTable, m_jetSession);
         }
         catch (core::IAppException &)
         {

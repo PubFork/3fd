@@ -616,7 +616,7 @@ namespace isam
             std::wstring_convert<std::codecvt_utf8<wchar_t>> transcoder;
             const auto ucs2idxName = transcoder.from_bytes(idxName);
 
-            auto indexHint = std::unique_ptr<JET_INDEXID> (new JET_INDEXID);
+            auto indexHint = std::unique_ptr<JET_INDEXID> (dbg_new JET_INDEXID);
 
             auto rcode = JetGetTableIndexInfoW(m_pimplDatabase->GetSessionHandle(), 
                                                m_jetTable, 

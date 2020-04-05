@@ -539,7 +539,7 @@ namespace isam
                 ErrorHelper::HandleError(NULL, m_jetSession, rcode, "Failed to duplicate cursor");
 
                 std::unique_ptr<TableCursorImpl> dupCursor(
-                    new TableCursorImpl(m_table, idxRange.tableid, m_jetSession)
+                    dbg_new TableCursorImpl(m_table, idxRange.tableid, m_jetSession)
                 );
 #else
                 std::unique_ptr<TableCursorImpl> dupCursor(
@@ -775,7 +775,7 @@ namespace isam
 
         try
         {
-            return new TableWriterImpl(*this, mode);
+            return dbg_dbg_new TableWriterImpl(*this, mode);
         }
         catch(core::IAppException &)
         {

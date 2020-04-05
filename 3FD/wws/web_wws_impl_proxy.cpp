@@ -209,7 +209,7 @@ namespace wws
 
         try
         {
-            m_pimpl = new WebServiceProxyImpl(svcEndpointAddress, config, callback);
+            m_pimpl = dbg_new WebServiceProxyImpl(svcEndpointAddress, config, callback);
         }
         catch (std::bad_alloc &)
         {
@@ -316,7 +316,7 @@ namespace wws
 
         try
         {
-            m_pimpl = new WebServiceProxyImpl(svcEndpointAddress, config, certInfo, callback);
+            m_pimpl = dbg_new WebServiceProxyImpl(svcEndpointAddress, config, certInfo, callback);
         }
         catch (std::bad_alloc &)
         {
@@ -440,7 +440,7 @@ namespace wws
 
         try
         {
-            m_pimpl = new WebServiceProxyImpl(svcEndpointAddress, config, certInfo, callback);
+            m_pimpl = dbg_new WebServiceProxyImpl(svcEndpointAddress, config, certInfo, callback);
         }
         catch (std::bad_alloc &)
         {

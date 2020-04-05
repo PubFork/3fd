@@ -98,7 +98,7 @@ namespace isam
                 return oss.str();
             });
 
-            return new DatabaseImpl(m_jetSession, jetDatabaseId);
+            return dbg_new DatabaseImpl(m_jetSession, jetDatabaseId);
         }
         catch (core::IAppException &)
         {
@@ -135,7 +135,7 @@ namespace isam
                 return oss.str();
             });
 
-            return new DatabaseImpl(m_jetSession, jetDatabase);
+            return dbg_new DatabaseImpl(m_jetSession, jetDatabase);
         }
         catch (core::IAppException &)
         {
@@ -165,7 +165,7 @@ namespace isam
             auto rcode = JetBeginTransaction3(m_jetSession, 0, 0);
 #endif
             ErrorHelper::HandleError(NULL, m_jetSession, rcode, "Failed to begin ISAM transaction");
-            return new TransactionImpl(m_jetSession);
+            return dbg_new TransactionImpl(m_jetSession);
         }
         catch (std::exception &ex)
         {

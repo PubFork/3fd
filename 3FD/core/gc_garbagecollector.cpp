@@ -68,7 +68,7 @@ namespace memory
             std::lock_guard<std::mutex> lock(singleInstanceCreationMutex);
 
             if(uniqueObjectPtr == nullptr)
-                uniqueObjectPtr = new GarbageCollector();
+                uniqueObjectPtr = dbg_new GarbageCollector();
 
             return uniqueObjectPtr;
         }
@@ -257,37 +257,37 @@ namespace memory
 
     void GarbageCollector::UpdateReference(void *leftSptrObjAddr, void *rightSptrObjAddr)
     {
-        m_messagesQueue.Add(new ReferenceUpdateMsg(leftSptrObjAddr, rightSptrObjAddr));
+        m_messagesQueue.Add(dbg_new ReferenceUpdateMsg(leftSptrObjAddr, rightSptrObjAddr));
     }
 
     void GarbageCollector::ReleaseReference(void *sptrObjAddr)
     {
-        m_messagesQueue.Add(new ReferenceReleaseMsg(sptrObjAddr));
+        m_messagesQueue.Add(dbg_new ReferenceReleaseMsg(sptrObjAddr));
     }
 
     void GarbageCollector::RegisterNewObject(void *sptrObjAddr, void *pointedAddr, size_t blockSize, FreeMemProc freeMemCallback)
     {
-        m_messagesQueue.Add(new NewObjectMsg(sptrObjAddr, pointedAddr, blockSize, freeMemCallback));
+        m_messagesQueue.Add(dbg_new NewObjectMsg(sptrObjAddr, pointedAddr, blockSize, freeMemCallback));
     }
 
     void GarbageCollector::UnregisterAbortedObject(void *sptrObjAddr)
     {
-        m_messagesQueue.Add(new AbortedObjectMsg(sptrObjAddr));
+        m_messagesQueue.Add(dbg_new AbortedObjectMsg(sptrObjAddr));
     }
 
     void GarbageCollector::RegisterSptr(void *sptrObjAddr, void *pointedAddr)
     {
-        m_messagesQueue.Add(new SptrRegistrationMsg(sptrObjAddr, pointedAddr));
+        m_messagesQueue.Add(dbg_new SptrRegistrationMsg(sptrObjAddr, pointedAddr));
     }
 
     void GarbageCollector::RegisterSptrCopy(void *leftSptrObjAddr, void *rightSptrObjAddr)
     {
-        m_messagesQueue.Add(new SptrCopyRegistrationMsg(leftSptrObjAddr, rightSptrObjAddr));
+        m_messagesQueue.Add(dbg_new SptrCopyRegistrationMsg(leftSptrObjAddr, rightSptrObjAddr));
     }
 
     void GarbageCollector::UnregisterSptr(void *sptrObjAddr)
     {
-        m_messagesQueue.Add(new SptrUnregistrationMsg(sptrObjAddr));
+        m_messagesQueue.Add(dbg_new SptrUnregistrationMsg(sptrObjAddr));
     }
 
 }// end of namespace memory

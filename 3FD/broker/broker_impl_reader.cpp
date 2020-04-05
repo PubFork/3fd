@@ -253,7 +253,7 @@ namespace broker
             using namespace Poco::Data::Keywords;
 
             m_stoProcExecStmt.reset(
-                new Poco::Data::Statement(CheckConnection(dbSession))
+                dbg_new Poco::Data::Statement(CheckConnection(dbSession))
             );
 
             std::ostringstream oss;
@@ -421,7 +421,7 @@ namespace broker
                 }
 
                 m_stoProcActRes.reset(
-                    new Poco::ActiveResult<size_t>(m_stoProcExecStmt->executeAsync())
+                    dbg_new Poco::ActiveResult<size_t>(m_stoProcExecStmt->executeAsync())
                 );
             }
             catch (core::IAppException &)
@@ -602,7 +602,7 @@ namespace broker
         try
         {
             return std::unique_ptr<IAsyncRead>(
-                new AsyncReadImpl(*m_dbSession,
+                dbg_new AsyncReadImpl(*m_dbSession,
                                   msgCountStepLimit,
                                   msgRecvTimeout,
                                   m_serviceURL)

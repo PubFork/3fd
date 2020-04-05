@@ -244,7 +244,7 @@ namespace utils
 
             try
             {
-                *object = new ComStreamFromBuffer(m_data, m_nBytes);
+                *object = dbg_new ComStreamFromBuffer(m_data, m_nBytes);
             }
             catch (std::bad_alloc &)
             {
@@ -339,7 +339,7 @@ namespace utils
     {
         try
         {
-            Microsoft::WRL::ComPtr<::IStream> bufStream = new ComStreamFromBuffer(data, nBytes);
+            Microsoft::WRL::ComPtr<::IStream> bufStream = dbg_new ComStreamFromBuffer(data, nBytes);
 
             winrt::com_ptr<ABI::Windows::Storage::Streams::IRandomAccessStream> abiObject;
             winrt::check_hresult(

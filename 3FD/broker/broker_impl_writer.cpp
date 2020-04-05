@@ -296,7 +296,7 @@ namespace broker
             m_dbSession(dbSession)
         {
             m_future.reset(
-                new std::future<void>(this->get_future())
+                dbg_new std::future<void>(this->get_future())
             );
         }
         catch (std::future_error &ex)
@@ -575,10 +575,10 @@ namespace broker
             if (m_workerThread && m_workerThread->joinable())
                 m_workerThread->join();
 
-            std::unique_ptr<IAsyncWrite> result(new AsyncWriteImpl(*m_dbSession));
+            std::unique_ptr<IAsyncWrite> result(dbg_new AsyncWriteImpl(*m_dbSession));
             
             m_workerThread.reset(
-                new std::thread(&PutInQueueImpl,
+                dbg_new std::thread(&PutInQueueImpl,
                                 std::ref(*m_dbSession),
                                 std::ref(messages),
                                 m_serviceURL,

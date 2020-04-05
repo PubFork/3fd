@@ -149,7 +149,7 @@ namespace core
                 {
                     std::vector<ValType> values = argValCfg;
                     std::unique_ptr<std::vector<ValType>> temp;
-                    temp.reset(new std::vector<ValType>(std::move(values)));
+                    temp.reset(dbg_new std::vector<ValType>(std::move(values)));
                     m_expectedArgs[argDecl.id] = ArgDeclExtended{ argDecl, temp.get() };
                     temp.release(); // release refence only when there is no risk of leak due to thrown exception
                 }

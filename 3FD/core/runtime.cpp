@@ -175,5 +175,20 @@ namespace core
 #endif
     }
 
+    void SetupMemoryLeakDetection()
+    {
+#ifdef _WIN32
+        _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+        _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
+        _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
+
+        _CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
+        _CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
+        _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
+
+        _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+    }
+
 }// end of namespace core
 }// end of namespace _3fd

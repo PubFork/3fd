@@ -111,7 +111,7 @@ namespace core
                 std::lock_guard<std::mutex> lock(singleInstanceCreationMutex);
 
                 if(singleInstancePtr.get() == nullptr)
-                    singleInstancePtr.reset(new Dependencies ());
+                    singleInstancePtr.reset(dbg_new Dependencies ());
 
                 return *singleInstancePtr;
             }

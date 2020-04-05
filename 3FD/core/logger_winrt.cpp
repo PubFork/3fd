@@ -116,7 +116,7 @@ namespace core
         StorageFile logFile = ApplicationData::Current().LocalFolder()
             .CreateFileAsync(name + L".log.txt", CreationCollisionOption::OpenIfExists).get();
 
-        return std::unique_ptr<ILogFileAccess>(new WinRtFileAccess(logFile));
+        return std::unique_ptr<ILogFileAccess>(dbg_new WinRtFileAccess(logFile));
     }
 
 }// end of namespace core

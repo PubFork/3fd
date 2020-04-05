@@ -1039,7 +1039,7 @@ namespace opencl
                 // The callback provided by client code is going to be invoked when the map command completes:
                 CommandEvent callbackDoneEvent(m_context);
                 std::unique_ptr<OnMapCommandCompletedArgs> args(
-                    new OnMapCommandCompletedArgs(this, callback, ptr, nBytes, callbackDoneEvent)
+                    dbg_new OnMapCommandCompletedArgs(this, callback, ptr, nBytes, callbackDoneEvent)
                 );
 
                 // Also keep track of the resources blocked because of mapping, if any:
@@ -1117,7 +1117,7 @@ namespace opencl
                 CommandEvent cmdMapEvent(cmdMapEventHandle);
                 CommandEvent callbackDoneEvent(m_context);
                 std::unique_ptr<OnMapCommandCompletedArgs> args(
-                    new OnMapCommandCompletedArgs(this, callback, ptr, nBytes, callbackDoneEvent)
+                    dbg_new OnMapCommandCompletedArgs(this, callback, ptr, nBytes, callbackDoneEvent)
                 );
 
                 cmdMapEvent.SetCallback(CL_COMPLETE, OnMapCommandCompleted, args.release());

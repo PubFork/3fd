@@ -500,7 +500,7 @@ namespace xml
                       "Cannot specify format unless you have a non-void binding!");
 
         return std::shared_ptr<XmlQueryNode>(
-            new XmlQueryAttribute<XmlConstValue<ValType>, FormatType>(localName,
+            dbg_new XmlQueryAttribute<XmlConstValue<ValType>, FormatType>(localName,
                                                                       std::move(binding),
                                                                       std::move(valFormat),
                                                                       false)
@@ -535,7 +535,7 @@ namespace xml
                       "Cannot specify format unless you have a non-void binding!");
 
         return std::shared_ptr<XmlQueryNode>(
-            new XmlQueryAttribute<XmlValue<ValType>, FormatType>(localName,
+            dbg_new XmlQueryAttribute<XmlValue<ValType>, FormatType>(localName,
                                                                  std::move(binding),
                                                                  std::move(valFormat),
                                                                  enforcement == Optional)
@@ -732,7 +732,7 @@ namespace xml
         );
 
         return std::shared_ptr<XmlQueryNode>(
-            new XmlQueryElement<XmlConstValue<ValType>, FormatType>(localName,
+            dbg_new XmlQueryElement<XmlConstValue<ValType>, FormatType>(localName,
                                                                     std::move(binding),
                                                                     std::move(valFormat),
                                                                     enforcement == Optional,
@@ -774,7 +774,7 @@ namespace xml
         );
 
         return std::shared_ptr<XmlQueryNode>(
-            new XmlQueryElement<XmlValue<ValType>, FormatType>(localName,
+            dbg_new XmlQueryElement<XmlValue<ValType>, FormatType>(localName,
                                                                std::move(binding),
                                                                std::move(valFormat),
                                                                enforcement == Optional,

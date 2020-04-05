@@ -82,7 +82,7 @@ namespace core
 
     std::unique_ptr<ILogFileAccess> GetFileAccess(const string &loggerId)
     {
-        return std::unique_ptr<ILogFileAccess>(new DirectSystemFileAccess(loggerId + ".log.txt"));
+        return std::unique_ptr<ILogFileAccess>(dbg_new DirectSystemFileAccess(loggerId + ".log.txt"));
     }
 
 }// end of namespace core

@@ -197,7 +197,7 @@ namespace wws
         CallbackCreateServiceEndpoint<WS_HTTP_BINDING_TEMPLATE> callbackCreateSvcEndpt)
     {
         m_bindNameToImpl[bindName].reset(
-            new SvcEndptBindHttpUnsec(functionTable, callbackCreateSvcEndpt)
+            dbg_new SvcEndptBindHttpUnsec(functionTable, callbackCreateSvcEndpt)
         );
     }
 
@@ -226,7 +226,7 @@ namespace wws
         bool requireClientCert)
     {
         m_bindNameToImpl[bindName].reset(
-            new SvcEndptBindHttpSsl(
+            dbg_new SvcEndptBindHttpSsl(
                 functionTable,
                 callbackCreateSvcEndpt,
                 requireClientCert
@@ -259,7 +259,7 @@ namespace wws
         bool requireClientCert)
     {
         m_bindNameToImpl[bindName].reset(
-            new SvcEndptBindHttpHeaderAuthSsl(
+            dbg_new SvcEndptBindHttpHeaderAuthSsl(
                 functionTable,
                 callbackCreateSvcEndpt,
                 requireClientCert
@@ -321,7 +321,7 @@ namespace wws
 
         try
         {
-            m_pimpl = new WebServiceHostImpl(reservedMemory);
+            m_pimpl = dbg_new WebServiceHostImpl(reservedMemory);
         }
         catch (std::bad_alloc &)
         {

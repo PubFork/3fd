@@ -75,7 +75,7 @@ namespace broker
                     core::AppConfig::GetSettings().framework.broker.dbConnTimeoutSecs;
 
                 return std::unique_ptr<Poco::Data::Session>(
-                    new Poco::Data::Session("ODBC", connString, timeout)
+                    dbg_new Poco::Data::Session("ODBC", connString, timeout)
                 );
             }
             catch (Poco::Data::ConnectionFailedException &ex)

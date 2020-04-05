@@ -380,7 +380,7 @@ namespace rpc
             auto authnService = static_cast<unsigned long> (AuthenticationSecurity::SecureChannel);
 
             m_schannelCred.reset(
-                new SChannelCredWrapper(certX509, certInfoX509.strongerSecurity)
+                dbg_new SChannelCredWrapper(certX509, certInfoX509.strongerSecurity)
             );
 
             auto status = RpcBindingSetAuthInfoW(

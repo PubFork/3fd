@@ -51,7 +51,7 @@ namespace utils
         /// </summary>
         LockFreeQueue()
         {
-            auto emptyElem = new Element();
+            auto emptyElem = dbg_new Element();
             m_tail.store(emptyElem, std::memory_order_relaxed);
             m_head.store(emptyElem, std::memory_order_release);
         }
@@ -86,7 +86,7 @@ namespace utils
         void Add(Type *entry)
         {
             // Create a new element and without locks, replace the head of the queue:
-            auto newElem = new Element(entry);
+            auto newElem = dbg_new Element(entry);
             auto headBefore = m_head.exchange(newElem, std::memory_order_acq_rel);
             headBefore->next.store(newElem, std::memory_order_release);
         }

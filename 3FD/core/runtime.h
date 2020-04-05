@@ -42,6 +42,8 @@ namespace core
         ~FrameworkInstance();
     };
 
+    void SetupMemoryLeakDetection();
+
 }// end of namespace core
 }// end of namespace _3fd
 

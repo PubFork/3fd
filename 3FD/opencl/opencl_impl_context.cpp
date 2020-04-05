@@ -489,7 +489,7 @@ namespace opencl
         try
         {
             return std::unique_ptr<Device>(
-                new Device(m_devices[index], m_context, properties)
+                dbg_new Device(m_devices[index], m_context, properties)
             );
         }
         catch (core::IAppException &)
@@ -531,7 +531,7 @@ namespace opencl
             if (status != CL_SUCCESS)
                 CheckBuildStatus(program);
 
-            return std::unique_ptr<Program>(new Program(program));
+            return std::unique_ptr<Program>(dbg_new Program(program));
         }
         catch (core::IAppException &)
         {
@@ -582,7 +582,7 @@ namespace opencl
             if (status != CL_SUCCESS)
                 CheckBuildStatus(program);
 
-            return std::unique_ptr<Program>(new Program(program));
+            return std::unique_ptr<Program>(dbg_new Program(program));
         }
         catch (core::IAppException &)
         {

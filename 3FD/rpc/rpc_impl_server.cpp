@@ -66,7 +66,7 @@ namespace rpc
         InitializeBaseTemplate([protSeq, &serviceName]()
         {
             uniqueObject.reset(
-                new RpcServerImpl(protSeq, serviceName, false)
+                dbg_new RpcServerImpl(protSeq, serviceName, false)
             );
         });
     }
@@ -152,7 +152,7 @@ namespace rpc
         InitializeBaseTemplate([protSeq, &serviceName, authnLevel]()
         {
             uniqueObject.reset(
-                new RpcServerImpl(protSeq, serviceName, authnLevel)
+                dbg_new RpcServerImpl(protSeq, serviceName, authnLevel)
             );
         });
     }
@@ -251,7 +251,7 @@ namespace rpc
         InitializeBaseTemplate([&serviceName, certInfoX509, authnLevel]()
         {
             uniqueObject.reset(
-                new RpcServerImpl(serviceName, certInfoX509, authnLevel)
+                dbg_new RpcServerImpl(serviceName, certInfoX509, authnLevel)
             );
         });
     }
@@ -280,7 +280,7 @@ namespace rpc
             if (certInfoX509 != nullptr)
             {
                 m_sysCertStore.reset(
-                    new SystemCertificateStore(certInfoX509->storeLocation, certInfoX509->storeName)
+                    dbg_new SystemCertificateStore(certInfoX509->storeLocation, certInfoX509->storeName)
                 );
 
                 auto certX509 = m_sysCertStore->FindCertBySubject(certInfoX509->subject);
@@ -300,7 +300,7 @@ namespace rpc
                 }
 
                 m_schannelCred.reset(
-                    new SChannelCredWrapper(certX509, certInfoX509->strongerSecurity)
+                    dbg_new SChannelCredWrapper(certX509, certInfoX509->strongerSecurity)
                 );
             }
 

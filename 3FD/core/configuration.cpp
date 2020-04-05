@@ -156,7 +156,7 @@ namespace core
 
                 if(!uniqueObject)
                 {
-                    std::unique_ptr<AppConfig> temp(new AppConfig());
+                    std::unique_ptr<AppConfig> temp(dbg_new AppConfig());
                     temp->Initialize();
                     uniqueObject = std::move(temp);
                 }

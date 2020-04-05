@@ -240,7 +240,7 @@ namespace isam
     {
         CALL_STACK_TRACE;
         m_pimplInstance =
-            new InstanceImpl(
+            dbg_new InstanceImpl(
                 name,
                 transactionLogsPath,
                 minCachedPages,
@@ -318,7 +318,7 @@ namespace isam
                 return oss.str();
             });
 
-            return new SessionImpl(jetSession);
+            return dbg_new SessionImpl(jetSession);
         }
         catch (std::exception &ex)
         {

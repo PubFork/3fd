@@ -54,7 +54,7 @@ namespace sqlite
             return DbConnWrapper(*this, conn);
         else
         {
-            conn = new DatabaseConn(m_dbFilePath);
+            conn = dbg_new DatabaseConn(m_dbFilePath);
             m_numConns.fetch_add(1, std::memory_order_acq_rel);
             return DbConnWrapper(*this, conn);
         }

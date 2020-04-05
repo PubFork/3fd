@@ -229,7 +229,7 @@ namespace xml
                                                const rapidxml::xml_node<char> **match)
     {
         return std::shared_ptr<XmlQueryNode>(
-            new XmlQueryElement<XmlConstValue<void>, NoFormat>(localName,
+            dbg_new XmlQueryElement<XmlConstValue<void>, NoFormat>(localName,
                                                                XmlConstValue<void>(),
                                                                NoFormat(),
                                                                enforcement == Optional,

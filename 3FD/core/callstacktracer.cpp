@@ -104,7 +104,7 @@ namespace core
         {
             try
             {
-                callStack = new CallStack (
+                callStack = dbg_new CallStack (
                     AppConfig::GetSettings().framework.stackTracing.stackLogInitialCap
                 );
 

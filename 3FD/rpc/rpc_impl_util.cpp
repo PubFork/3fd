@@ -171,7 +171,7 @@ namespace rpc
     void VectorOfUuids::Add(const UUID &uuid)
     {
         if (m_ptrs2Uuids.size() < UUID_VECTOR_MAX_SIZE)
-            m_ptrs2Uuids.push_back(new UUID(uuid));
+            m_ptrs2Uuids.push_back(dbg_new UUID(uuid));
         else
         {
             std::ostringstream oss;
