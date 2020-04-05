@@ -12,11 +12,11 @@
     <Filter Include="pch">
       <UniqueIdentifier>{057cf2cd-d132-487b-a974-a6dae8523905}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shared">
+      <UniqueIdentifier>{a39acdfb-b648-4dc5-aab5-aa039b513db1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="UnitTests.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="tests_gc_hashtable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -46,6 +46,9 @@
     </ClCompile>
     <ClCompile Include="pch.cpp">
       <Filter>pch</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TestShared\main.cpp">
+      <Filter>Shared</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -1,4 +1,4 @@
-// UnitTests.cpp : Defines the entry point for the console application.
+// TestAppEntryPoint.cpp : Defines the entry point for the test executables.
 //
 
 #include "pch.h"
@@ -12,7 +12,6 @@
         std::cout << "Running wmain() from " __FILE__ << std::endl;
         _3fd::core::SetupMemoryLeakDetection();
         testing::InitGoogleTest(&argc, argv);
-        void *x = dbg_new int(696);
         return RUN_ALL_TESTS();
     }
 

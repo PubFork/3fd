@@ -775,7 +775,7 @@ namespace isam
 
         try
         {
-            return dbg_dbg_new TableWriterImpl(*this, mode);
+            return dbg_new TableWriterImpl(*this, mode);
         }
         catch(core::IAppException &)
         {

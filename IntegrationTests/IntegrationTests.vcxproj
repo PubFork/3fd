@@ -69,7 +69,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\tests</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\tests\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <LibraryPath>$(ProgramFiles)\Visual Leak Detector\lib\Win32;$(BOOST_HOME)\lib\Win32;$(POCO_ROOT)\lib;$(LibraryPath)</LibraryPath>
     <IncludePath>$(ProgramFiles)\Visual Leak Detector\include;$(IncludePath)</IncludePath>
@@ -82,11 +82,11 @@
     <IncludePath>$(ProgramFiles)\Visual Leak Detector\include;$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\tests</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\tests\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\tests</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\tests\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <LibraryPath>$(ProgramFiles)\Visual Leak Detector\lib\Win32;$(BOOST_HOME)\lib\Win32;$(POCO_ROOT)\lib;$(LibraryPath)</LibraryPath>
     <IncludePath>$(ProgramFiles)\Visual Leak Detector\include;$(IncludePath)</IncludePath>
@@ -99,7 +99,7 @@
     <IncludePath>$(ProgramFiles)\Visual Leak Detector\include;$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\tests</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\tests\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -206,6 +206,8 @@ copy "$(SolutionDir)TestShared\calculator.wsdl" "$(TargetDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\TestShared\error_handling.cpp" />
+    <ClCompile Include="..\TestShared\main.cpp" />
     <ClCompile Include="..\TestShared\rpc_test_shared.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
@@ -230,7 +232,6 @@ copy "$(SolutionDir)TestShared\calculator.wsdl" "$(TargetDir)"</Command>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="IntegrationTests.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

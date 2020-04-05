@@ -1,19 +1,8 @@
-// TestWwsClient.cpp : Defines the entry point for the console application.
-//
-
 #include "pch.h"
 #include <3fd/core/exceptions.h>
 #include <3fd/core/logger.h>
 #include <exception>
 #include <iostream>
-#include <vld.h>
-
-int wmain(int argc, wchar_t *argv[])
-{
-    std::cout << "Running main() from \'TestWwsClient.cpp\'\n";
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
 
 namespace _3fd
 {
@@ -30,16 +19,16 @@ namespace integration_tests
         {
             throw;
         }
-        catch (IAppException &appEx)
+        catch(IAppException &appEx)
         {
             //std::cerr << appEx.ToString() << std::endl;
             core::Logger::Write(appEx, core::Logger::PRIO_ERROR);
         }
-        catch (std::exception &stdEx)
+        catch(std::exception &stdEx)
         {
             std::cerr << stdEx.what() << std::endl;
         }
-        catch (...)
+        catch(...)
         {
             std::cerr << "An unexpected exception has been caught." << std::endl;
         }

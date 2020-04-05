@@ -206,6 +206,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\TestShared\main.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -221,7 +222,6 @@
     <ClCompile Include="tests_utils_lockfreequeue.cpp" />
     <ClCompile Include="tests_utils_pool.cpp" />
     <ClCompile Include="tests_xml.cpp" />
-    <ClCompile Include="UnitTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />

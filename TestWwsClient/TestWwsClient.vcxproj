@@ -197,6 +197,8 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\TestShared\error_handling.cpp" />
+    <ClCompile Include="..\TestShared\main.cpp" />
     <ClCompile Include="calculator.wsdl.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
@@ -210,7 +212,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="tests_wws.cpp" />
-    <ClCompile Include="TestWwsClient.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="application.config" />
