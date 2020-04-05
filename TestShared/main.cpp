@@ -19,8 +19,10 @@
     int main()
     {
         std::cout << "Running main() from " __FILE__ << std::endl;
+        _3fd::core::SetupMemoryLeakDetection();
         testing::InitGoogleTest(&__argc, __argv);
         int rc = RUN_ALL_TESTS();
+        void *x = dbg_new int(696);
         getchar();
         return rc;
     }

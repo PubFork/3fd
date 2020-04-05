@@ -10,8 +10,11 @@
 #endif
 
 #ifdef _3FD_PLATFORM_WINRT
-#    include <winrt\Windows.Storage.h>
-#    include <sqlite3\sqlite3.h>
+#   include <cstring>
+#   include <fcntl.h>
+#   include <io.h>
+#   include <sqlite3\sqlite3.h>
+#   include <winrt\Windows.Storage.h>
 #endif
 
 #include <array>
@@ -133,7 +136,7 @@ namespace core
     FrameworkInstance::FrameworkInstance(const char *thisComName)
         : m_moduleName(thisComName)
     {
-        string tempFolderPath =
+        std::string tempFolderPath =
             winrt::to_string(winrt::Windows::Storage::ApplicationData::Current().TemporaryFolder().Path());
 
         auto tempDirStrSize = tempFolderPath.length() + 1;
@@ -175,17 +178,55 @@ namespace core
 #endif
     }
 
+    /// <summary>
+    /// This will set up detection of memory leaks (supported by CRT libraries).
+    /// Side effect for UWP console apps: the output will be redirected to a file!
+    /// </summary>
     void SetupMemoryLeakDetection()
     {
 #ifdef _WIN32
+#   ifdef _3FD_PLATFORM_WINRT
+
+        const std::string reportFileName =
+            winrt::to_string(winrt::Windows::Storage::ApplicationData::Current().LocalFolder().Path())
+            + "\\crt_memory_check_report.txt";
+
+        int reportFileDesc;
+        errno_t rc = _sopen_s(&reportFileDesc,
+                              reportFileName.c_str(),
+                              _O_CREAT | _O_TRUNC,
+                              _SH_DENYWR,
+                              _S_IREAD | _S_IWRITE);
+        if (rc != 0)
+        {
+            printf("*** Failed to set up CRT support for memory leak detection: "
+                   "could not open file '%s' - %s ***\n", reportFileName.c_str(), strerror(rc));
+            return;
+        }
+
+        const auto reportFileHandle = reinterpret_cast<HANDLE> (_get_osfhandle(reportFileDesc));
+#   else
+        const HANDLE reportFileHandle(_CRTDBG_FILE_STDERR);
+#   endif
         _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
         _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
         _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
 
-        _CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
-        _CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
-        _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
+        _CrtSetReportFile(_CRT_WARN, reportFileHandle);
+        _CrtSetReportFile(_CRT_ERROR, reportFileHandle);
+        _CrtSetReportFile(_CRT_ASSERT, reportFileHandle);
 
+        if ((rc = errno) != 0)
+        {
+            printf("*** Failed to set up CRT support for memory leak detection: "
+                   "could not set report file! %s ***\n", strerror(rc));
+            return;
+        }
+
+#   ifdef _3FD_PLATFORM_WINRT
+        printf("*** CRT memory leak detection has been set up to print report to file '%s' ***\n",
+               reportFileName.c_str());
+#   endif
         _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
     }
