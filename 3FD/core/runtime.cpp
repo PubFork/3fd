@@ -179,12 +179,13 @@ namespace core
     }
 
 #ifdef _3FD_PLATFORM_WINRT
-    static _CrtMemState g_crtMemCheckpoint;
+    static _CrtMemState g_crtMemoryState;
+    static _CrtMemState *g_crtMemCheckpoint(&g_crtMemoryState);
     static FILE *g_crtMemDbgReportFileBuffer(nullptr);
 
     void CallbackDumpMemoryLeaks()
     {
-        _CrtMemDumpAllObjectsSince(&g_crtMemCheckpoint);
+        _CrtMemDumpAllObjectsSince(g_crtMemCheckpoint);
         fclose(g_crtMemDbgReportFileBuffer);
     }
 #endif
@@ -210,20 +211,22 @@ namespace core
         if (g_crtMemDbgReportFileBuffer == nullptr)
         {
             printf("*** Failed to set up CRT support for memory leak detection: "
-                "could not open file '%s' - %s ***\n", reportFileName.c_str(), strerror(errno));
+                   "could not open file '%s' - %s ***\n", reportFileName.c_str(), strerror(errno));
             return;
         }
 
         const auto reportFileHandle =
             reinterpret_cast<HANDLE> (_get_osfhandle(_fileno(g_crtMemDbgReportFileBuffer)));
 
-        _CrtMemCheckpoint(&g_crtMemCheckpoint);
+        _CrtMemCheckpoint(&g_crtMemoryState);
 
         if ((rc = errno) != 0)
         {
-            printf("*** Failed to set up CRT support for memory leak detection: "
-                   "could not capture snapshot of heap state - %s! ***\n", strerror(rc));
-            return;
+            g_crtMemCheckpoint = nullptr;
+
+            printf("*** CRT support for memory leak detection: "
+                   "could not capture snapshot of heap state - %s! "
+                   "(false positives are expected in the report) ***\n", strerror(rc));
         }
 #   else
         const HANDLE reportFileHandle(_CRTDBG_FILE_STDERR);

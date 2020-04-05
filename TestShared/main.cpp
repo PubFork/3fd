@@ -11,7 +11,6 @@
     {
         std::cout << "Running wmain() from " __FILE__ << std::endl;
         _3fd::core::SetupMemoryLeakDetection();
-        void *x = dbg_new int(696);
         testing::InitGoogleTest(&argc, argv);
         return RUN_ALL_TESTS();
     }
@@ -21,9 +20,11 @@
     {
         std::cout << "Running main() from " __FILE__ << std::endl;
         testing::InitGoogleTest(&__argc, __argv);
+
+        // After InitGoogleTest! (takes snapshot of the heap later)
         _3fd::core::SetupMemoryLeakDetection();
+
         int rc = RUN_ALL_TESTS();
-        void *x = dbg_new int(696);
         getchar();
         return rc;
     }
