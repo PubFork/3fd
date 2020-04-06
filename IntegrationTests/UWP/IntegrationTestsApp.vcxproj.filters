@@ -45,9 +45,6 @@
     <None Include="IntegrationTestsApp_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\IntegrationTests.cpp">
-      <Filter>Ported</Filter>
-    </ClCompile>
     <ClCompile Include="..\tests_core.cpp">
       <Filter>Ported</Filter>
     </ClCompile>

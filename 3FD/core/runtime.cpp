@@ -179,19 +179,23 @@ namespace core
     }
 
 #ifdef _3FD_PLATFORM_WINRT
-    static _CrtMemState g_crtMemoryState;
-    static _CrtMemState *g_crtMemCheckpoint(&g_crtMemoryState);
-    static FILE *g_crtMemDbgReportFileBuffer(nullptr);
+    static struct
+    {
+        _CrtMemState heapState;
+        _CrtMemState *checkpoint = nullptr;
+        FILE *reportFileBuffer = nullptr;
+    } g_crtMemoryDebug;
 
     void CallbackDumpMemoryLeaks()
     {
-        _CrtMemDumpAllObjectsSince(g_crtMemCheckpoint);
-        fclose(g_crtMemDbgReportFileBuffer);
+        _CrtMemDumpAllObjectsSince(g_crtMemoryDebug.checkpoint);
+        fclose(g_crtMemoryDebug.reportFileBuffer);
     }
 #endif
 
     /// <summary>
     /// This will set up detection of memory leaks (supported by CRT libraries).
+    /// For UWP platform: leaks detection compares with snapshot of the heap taken during this call.
     /// </summary>
     void SetupMemoryLeakDetection()
     {
@@ -201,14 +205,14 @@ namespace core
 #   ifdef _3FD_PLATFORM_WINRT
 
         // must not call this function twice!
-        _ASSERTE(g_crtMemDbgReportFileBuffer == nullptr);
+        _ASSERTE(g_crtMemoryDebug.reportFileBuffer == nullptr);
 
         const std::string reportFileName =
             winrt::to_string(winrt::Windows::Storage::ApplicationData::Current().LocalFolder().Path())
             + "\\crt_memory_check_report.txt";
 
-        g_crtMemDbgReportFileBuffer = fopen(reportFileName.c_str(), "w");
-        if (g_crtMemDbgReportFileBuffer == nullptr)
+        g_crtMemoryDebug.reportFileBuffer = fopen(reportFileName.c_str(), "w");
+        if (g_crtMemoryDebug.reportFileBuffer == nullptr)
         {
             printf("*** Failed to set up CRT support for memory leak detection: "
                    "could not open file '%s' - %s ***\n", reportFileName.c_str(), strerror(errno));
@@ -216,18 +220,19 @@ namespace core
         }
 
         const auto reportFileHandle =
-            reinterpret_cast<HANDLE> (_get_osfhandle(_fileno(g_crtMemDbgReportFileBuffer)));
+            reinterpret_cast<HANDLE> (_get_osfhandle(_fileno(g_crtMemoryDebug.reportFileBuffer)));
 
-        _CrtMemCheckpoint(&g_crtMemoryState);
+        _CrtMemCheckpoint(&g_crtMemoryDebug.heapState);
 
         if ((rc = errno) != 0)
         {
-            g_crtMemCheckpoint = nullptr;
-
             printf("*** CRT support for memory leak detection: "
                    "could not capture snapshot of heap state - %s! "
                    "(false positives are expected in the report) ***\n", strerror(rc));
         }
+
+        g_crtMemoryDebug.checkpoint = &g_crtMemoryDebug.heapState;
+
 #   else
         const HANDLE reportFileHandle(_CRTDBG_FILE_STDERR);
 #   endif
