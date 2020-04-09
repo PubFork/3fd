@@ -71,14 +71,14 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\tests\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
-    <LibraryPath>$(BOOST_HOME)\lib\Win32;$(POCO_ROOT)\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(POCO_ROOT)\lib;$(LibraryPath)</LibraryPath>
     <IncludePath>$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>$(BOOST_HOME)\lib\x64;$(POCO_ROOT)\lib64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(POCO_ROOT)\lib64;$(LibraryPath)</LibraryPath>
     <IncludePath>$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
@@ -88,14 +88,14 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\tests\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
-    <LibraryPath>$(BOOST_HOME)\lib\Win32;$(POCO_ROOT)\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(POCO_ROOT)\lib;$(LibraryPath)</LibraryPath>
     <IncludePath>$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>$(BOOST_HOME)\lib\x64;$(POCO_ROOT)\lib64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(POCO_ROOT)\lib64;$(LibraryPath)</LibraryPath>
     <IncludePath>$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
