@@ -62,8 +62,8 @@ namespace core
         const uint16_t idxNotation(m_useOptSignSlash ? 0 : 1);
 
         // regex for option single char label (might be case sensitive)
-        m_rgxOptCharLabel = boost::regex(rgxOptCharLabelCStr[idxNotation][idxSeparator],
-            boost::regex_constants::ECMAScript | (m_isOptCaseSensitive ? 0 : boost::regex_constants::icase)
+        m_rgxOptCharLabel = std::regex(rgxOptCharLabelCStr[idxNotation][idxSeparator],
+            std::regex_constants::ECMAScript | (m_isOptCaseSensitive ? 0 : std::regex_constants::icase)
         );
 
         static const char *rgxOptNameLabelCStr[][3] =
@@ -73,8 +73,8 @@ namespace core
         };
 
         // regex for option name label
-        m_rgxOptNameLabel = boost::regex(rgxOptNameLabelCStr[idxNotation][idxSeparator],
-            boost::regex_constants::ECMAScript | boost::regex_constants::icase
+        m_rgxOptNameLabel = std::regex(rgxOptNameLabelCStr[idxNotation][idxSeparator],
+            std::regex_constants::ECMAScript | std::regex_constants::icase
         );
     }
     catch (IAppException &)
@@ -982,7 +982,7 @@ namespace core
     }
 
     // Parses the string of a regex submatch into an integer value
-    static bool ParseInteger(const boost::csub_match &matchVal, long long &value)
+    static bool ParseInteger(const std::csub_match &matchVal, long long &value)
     {
         char *strEnd;
         value = strtoll(matchVal.first, &strEnd, 0);
@@ -999,7 +999,7 @@ namespace core
     }
 
     // Parses the string of a regex submatch into a floating point value
-    static bool ParseFloat(const boost::csub_match &matchVal, double &value)
+    static bool ParseFloat(const std::csub_match &matchVal, double &value)
     {
         char *strEnd;
         value = strtod(matchVal.first, &strEnd);
@@ -1083,7 +1083,7 @@ namespace core
     // Helps parsing a value of given type, then validates it against configuration
     static bool ParseAndValidateValue(const CommandLineArguments::ArgDeclaration &argDecl,
                                       void *argValCfg,
-                                      const boost::csub_match &matchVal,
+                                      const std::csub_match &matchVal,
                                       CommandLineArguments::ParsedValue &parsedValue)
     {
         // this implementation should only be called to parse values of arguments that expect and matched one
@@ -1196,7 +1196,7 @@ namespace core
             std::vector<ParsedValue> parsedValArgs; // temporarily hold results for parsed value arguments
             std::map<uint16_t, ParsedValue> parsedOptVals; // temporarily hold results for parsed option arguments
 
-            boost::csub_match matchVal; // regex sub-match for value
+            std::csub_match matchVal; // regex sub-match for value
 
             // iterator for the only allowed argument to be a value or list of values (if declared at all)
             auto valArgIter = (m_idValueTypeArg >= 0) ? m_expectedArgs.find(m_idValueTypeArg) : m_expectedArgs.end();
@@ -1211,10 +1211,10 @@ namespace core
                 const char *arg = arguments[idx];
 
                 uint16_t argId;
-                boost::cmatch match;
+                std::cmatch match;
 
                 // does the argument looks like an option with single char label?
-                if (boost::regex_match(arg, match, m_rgxOptCharLabel))
+                if (std::regex_match(arg, match, m_rgxOptCharLabel))
                 {
                     auto optChar = *(match[1].first);
                     auto iter = m_argsByCharLabel.find(optChar);
@@ -1227,7 +1227,7 @@ namespace core
                     argId = iter->second;
                 }
                 // does the argument looks like an option with name label?
-                else if (boost::regex_match(arg, match, m_rgxOptNameLabel))
+                else if (std::regex_match(arg, match, m_rgxOptNameLabel))
                 {
                     string optName = match[1].str();
                     auto iter = m_argsByNameLabel.find(optName);

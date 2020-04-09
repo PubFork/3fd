@@ -4,8 +4,8 @@
 #include "logger.h"
 
 #include "3fd/utils/utils_io.h"
-#include <boost/filesystem.hpp>
 #include <chrono>
+#include <filesystem>
 #include <sstream>
 
 namespace _3fd
@@ -20,7 +20,7 @@ namespace core
     {
     private:
 
-        const boost::filesystem::path m_filePath;
+        const std::filesystem::path m_filePath;
 
     public:
 
@@ -41,7 +41,7 @@ namespace core
             using std::chrono::system_clock;
             auto now = system_clock::to_time_t(system_clock::now());
 
-            using namespace boost::filesystem;
+            using namespace std::filesystem;
 
             std::array<char, 265> pathBuffer;
             utils::SerializeTo(pathBuffer,
@@ -70,9 +70,9 @@ namespace core
         {
             try
             {
-                return boost::filesystem::file_size(m_filePath);
+                return std::filesystem::file_size(m_filePath);
             }
-            catch (boost::filesystem::filesystem_error &ex)
+            catch (std::filesystem::filesystem_error &ex)
             {
                 throw AppException<std::runtime_error>("Failed to get size of log file",
                                                        StdLibExt::GetDetailsFromSystemError(ex.code()));

@@ -3,9 +3,10 @@
 
 #include "3fd/core/exceptions.h"
 #include "3fd/core/callstacktracer.h"
-#include <boost/regex.hpp>
+
 #include <cinttypes>
 #include <initializer_list>
+#include <regex>
 #include <stdexcept>
 #include <sstream>
 #include <string>
@@ -179,8 +180,8 @@ namespace core
         bool m_isOptCaseSensitive;
         int m_idValueTypeArg;
 
-        boost::regex m_rgxOptCharLabel;
-        boost::regex m_rgxOptNameLabel;
+        std::regex m_rgxOptCharLabel;
+        std::regex m_rgxOptNameLabel;
 
         /// <summary>
         /// The parsed values for arguments that are options
