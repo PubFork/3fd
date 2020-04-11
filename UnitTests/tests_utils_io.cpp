@@ -7,10 +7,57 @@
 
 #define format utils::FormatArg
 
-namespace _3fd
-{
-namespace unit_tests
-{
+namespace _3fd {
+namespace unit_tests {
+
+    /// <summary>
+    /// Tests serializing arguments to UTF-8 text into an output file.
+    /// </summary>
+    TEST(Framework_Utils_TestCase, TextPlaceholderReplacementHelper_SQL)
+    {
+        std::string actual = utils::TextPlaceholderReplacementHelper::Instantiate('%', R"(
+            if not exists ( select * from sys.service_queues where name = N'%service/v1_0_0/Queue' )
+            begin
+                create message type [%service/v1_0_0/Message] validation = %validation;
+                create contract [%service/v1_0_0/Contract] ([%service/v1_0_0/Message] sent by initiator);
+                create queue [%service/v1_0_0/Queue] with poison_message_handling (status = off);
+                create service [%service/v1_0_0] on queue [%service/v1_0_0/Queue] ([%service/v1_0_0/Contract]);
+            end;
+
+            if not exists (
+                select * from sys.systypes
+                    where name = N'%service/v1_0_0/Message/ContentType'
+            )
+            begin
+                create type [%service/v1_0_0/Message/ContentType] from varchar(%nbytes);
+            end;
+        )")
+        .Replace("service", "Service")
+        .Replace("validation", "StrengeKontrollierung")
+        .Use("nbytes", 696)
+        .Emit();
+
+        std::string_view expected(R"(
+            if not exists ( select * from sys.service_queues where name = N'Service/v1_0_0/Queue' )
+            begin
+                create message type [Service/v1_0_0/Message] validation = StrengeKontrollierung;
+                create contract [Service/v1_0_0/Contract] ([Service/v1_0_0/Message] sent by initiator);
+                create queue [Service/v1_0_0/Queue] with poison_message_handling (status = off);
+                create service [Service/v1_0_0] on queue [Service/v1_0_0/Queue] ([Service/v1_0_0/Contract]);
+            end;
+
+            if not exists (
+                select * from sys.systypes
+                    where name = N'Service/v1_0_0/Message/ContentType'
+            )
+            begin
+                create type [Service/v1_0_0/Message/ContentType] from varchar(696);
+            end;
+        )");
+
+        EXPECT_STRCASEEQ(expected.data(), actual.c_str());
+    }
+
     /// <summary>
     /// Tests serializing arguments to UTF-8 text into an output file.
     /// </summary>

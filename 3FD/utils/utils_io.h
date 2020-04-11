@@ -12,8 +12,11 @@
 #include <cinttypes>
 #include <cstdio>
 #include <cstring>
+#include <map>
 #include <sstream>
 #include <string>
+#include <string_view>
+#include <vector>
 
 #ifdef __linux__
 #   include <wchar.h>
@@ -493,6 +496,62 @@ namespace utils
             throw core::AppException<std::runtime_error>(oss.str());
         }
     }
+
+    ////////////////////////////////////
+    // Placeholder replacement helper
+    ////////////////////////////////////
+
+    class TextPlaceholderReplacementHelper
+    {
+    private:
+
+        // holds the pieces of string to form the final string
+        std::vector<std::string_view> m_pieces;
+
+        // maps a placeholder name to the index of a string piece
+        std::map<std::string_view, std::string> m_replacements;
+
+        const std::string_view m_referenceText;
+
+        const char m_placeholderMarker;
+
+        TextPlaceholderReplacementHelper(char placeholderMarker, std::string_view text);
+
+    public:
+
+        // this template guarantees that only string literals can be used
+        template <size_t SizeLiteral>
+        static TextPlaceholderReplacementHelper Instantiate(char placeholderMarker, const char (&text)[SizeLiteral])
+        {
+            return TextPlaceholderReplacementHelper(placeholderMarker, std::string_view(text, SizeLiteral));
+        }
+
+        /// <summary>Prepares a replacement of a placeholder by a serialized value.</summary>
+        /// <param name="from">The placeholder (without marker!) to replace.</param>
+        /// <param name="to">The value to serialize in place.</param>
+        /// <returns>A reference to this object (so the calls can be chained.)</returns>
+        template <typename TypeReplacement>
+        TextPlaceholderReplacementHelper &
+        Use(std::string_view from, TypeReplacement toValue)
+        {
+            std::array<char, 32> buffer;
+            auto length = SerializeTo(buffer, toValue);
+            m_replacements[from] = std::string_view(buffer.data(), length);
+            return *this;
+        }
+
+        /// <summary>Prepares a replacement of a placeholder by a string.</summary>
+        /// <param name="from">The placeholder (without marker!) to replace.</param>
+        /// <param name="to">The replacement string.</param>
+        /// <returns>A reference to this object (so the calls can be chained.)</returns>
+        TextPlaceholderReplacementHelper &Replace(std::string_view from, std::string_view to)
+        {
+            m_replacements[from] = to;
+            return *this;
+        }
+
+        std::string Emit() const;
+    };
 
 }// end of namespace utils
 }// end of namespace _3fd
