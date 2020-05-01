@@ -15,6 +15,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestWwsClient", "TestWwsCli
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "More", "More", "{60F3AE6C-C6A3-4C8B-A98A-9044DE809838}"
 	ProjectSection(SolutionItems) = preProject
+		.clang-format = .clang-format
 		Acknowledgements.txt = Acknowledgements.txt
 		build.ps1 = build.ps1
 		CreateMsSqlSvcBrokerDB.sql = CreateMsSqlSvcBrokerDB.sql
@@ -71,6 +72,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gtest-winrt", "gtest\msvc\gtest-winrt.vcxproj", "{B650C884-6640-4FEE-9C5B-62E4D84D9E0F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IntegrationTestsApp", "IntegrationTests\UWP\IntegrationTestsApp.vcxproj", "{76B6E741-768B-491E-9DBC-8F9C4B2E32C9}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nanodbc", "nanodbc\nanodbc.vcxproj", "{D0320193-9A05-410F-A52E-049638FAA95E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -330,6 +333,16 @@ Global
 		{76B6E741-768B-491E-9DBC-8F9C4B2E32C9}.Release|x86.ActiveCfg = Release|Win32
 		{76B6E741-768B-491E-9DBC-8F9C4B2E32C9}.Release|x86.Build.0 = Release|Win32
 		{76B6E741-768B-491E-9DBC-8F9C4B2E32C9}.Release|x86.Deploy.0 = Release|Win32
+		{D0320193-9A05-410F-A52E-049638FAA95E}.Debug|ARM.ActiveCfg = Debug|Win32
+		{D0320193-9A05-410F-A52E-049638FAA95E}.Debug|x64.ActiveCfg = Debug|x64
+		{D0320193-9A05-410F-A52E-049638FAA95E}.Debug|x64.Build.0 = Debug|x64
+		{D0320193-9A05-410F-A52E-049638FAA95E}.Debug|x86.ActiveCfg = Debug|Win32
+		{D0320193-9A05-410F-A52E-049638FAA95E}.Debug|x86.Build.0 = Debug|Win32
+		{D0320193-9A05-410F-A52E-049638FAA95E}.Release|ARM.ActiveCfg = Release|Win32
+		{D0320193-9A05-410F-A52E-049638FAA95E}.Release|x64.ActiveCfg = Release|x64
+		{D0320193-9A05-410F-A52E-049638FAA95E}.Release|x64.Build.0 = Release|x64
+		{D0320193-9A05-410F-A52E-049638FAA95E}.Release|x86.ActiveCfg = Release|Win32
+		{D0320193-9A05-410F-A52E-049638FAA95E}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -360,6 +373,7 @@ Global
 		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE8} = {8E00B911-43B2-49D5-9B4A-AB6E1ED097A1}
 		{B650C884-6640-4FEE-9C5B-62E4D84D9E0F} = {D1E2FDAE-D2C0-4A32-A980-F7DD8010CF3D}
 		{76B6E741-768B-491E-9DBC-8F9C4B2E32C9} = {D1E2FDAE-D2C0-4A32-A980-F7DD8010CF3D}
+		{D0320193-9A05-410F-A52E-049638FAA95E} = {9BDE25D2-D561-4A5E-90B8-C6BBAF3D8FFD}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3FB930DD-93C4-4123-8373-DCB40B20A7CA}
