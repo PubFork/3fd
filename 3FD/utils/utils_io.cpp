@@ -64,8 +64,8 @@ namespace utils {
             {
                 // find placeholder (without marker) among replacements
                 auto iter = m_replacements.find(std::string_view(piece.data() + 1, piece.size() - 1));
-                _ASSERTE(m_replacements.end() != iter);
-                oss << iter->second;
+                if (m_replacements.end() != iter)
+                    oss << iter->second;
             }
         }
 

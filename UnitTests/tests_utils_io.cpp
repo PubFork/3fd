@@ -11,11 +11,62 @@ namespace _3fd {
 namespace unit_tests {
 
     /// <summary>
-    /// Tests serializing arguments to UTF-8 text into an output file.
+    /// Tests <see cref="utils::TextPlaceholderReplacementHelper::Replace"/>.
+    /// All placeholders are replaced.
+    /// </summary>
+    TEST(Framework_Utils_TestCase, TextPlaceholderReplacementHelper_ReplaceAllPlaceholders)
+    {
+        std::string actual =
+            utils::TextPlaceholderReplacementHelper::in('$', "Erste: $eins, Zweite: $Zwei, Dritte: $3")
+            .Replace("eins", "Platz-1")
+            .Replace("Zwei", "Platz-2")
+            .Replace("3", "Platz-3")
+            .Emit();
+
+        std::string_view expected("Erste: Platz-1, Zweite: Platz-2, Dritte: Platz-3");
+
+        EXPECT_STRCASEEQ(expected.data(), actual.c_str());
+    }
+
+    /// <summary>
+    /// Tests <see cref="utils::TextPlaceholderReplacementHelper::Replace"/>.
+    /// Only some placeholders are replaced.
+    /// </summary>
+    TEST(Framework_Utils_TestCase, TextPlaceholderReplacementHelper_ReplaceNotAllPlaceholders)
+    {
+        std::string actual =
+            utils::TextPlaceholderReplacementHelper::in('$', "Erste: $eins, Zweite: $2, Dritte: $3")
+            .Replace("eins", "Platz-1")
+            .Emit();
+
+        std::string_view expected("Erste: Platz-1, Zweite: , Dritte: ");
+
+        EXPECT_STRCASEEQ(expected.data(), actual.c_str());
+    }
+
+    /// <summary>
+    /// Tests <see cref="utils::TextPlaceholderReplacementHelper::use"/>.
+    /// </summary>
+    TEST(Framework_Utils_TestCase, TextPlaceholderReplacementHelper_UseNumbers)
+    {
+        std::string actual =
+            utils::TextPlaceholderReplacementHelper::in('$', "Erste: $1, Zweite: $2, Dritte: $3")
+            .Use("1", 1)
+            .Use("2", 2.2F)
+            .Use("3", -3.3)
+            .Emit();
+
+        std::string_view expected("Erste: 1, Zweite: 2.2, Dritte: -3.3");
+
+        EXPECT_STRCASEEQ(expected.data(), actual.c_str());
+    }
+
+    /// <summary>
+    /// Tests real application of replacing placeholders in SQL.
     /// </summary>
     TEST(Framework_Utils_TestCase, TextPlaceholderReplacementHelper_SQL)
     {
-        std::string actual = utils::TextPlaceholderReplacementHelper::Instantiate('%', R"(
+        std::string actual = utils::TextPlaceholderReplacementHelper::in('%', R"(
             if not exists ( select * from sys.service_queues where name = N'%service/v1_0_0/Queue' )
             begin
                 create message type [%service/v1_0_0/Message] validation = %validation;

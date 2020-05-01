@@ -521,7 +521,7 @@ namespace utils
 
         // this template guarantees that only string literals can be used
         template <size_t SizeLiteral>
-        static TextPlaceholderReplacementHelper Instantiate(char placeholderMarker, const char (&text)[SizeLiteral])
+        static TextPlaceholderReplacementHelper in(char placeholderMarker, const char (&text)[SizeLiteral])
         {
             return TextPlaceholderReplacementHelper(placeholderMarker, std::string_view(text, SizeLiteral));
         }
