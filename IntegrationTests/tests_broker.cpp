@@ -27,7 +27,7 @@ namespace integration_tests
     /// <summary>
     /// Tests the setup of a reader for the broker queue.
     /// </summary>
-    TEST(Framework_Broker_BasicTestCase, QueueReaderSetup_Test)
+    TEST(Framework_Broker_BasicTestCase, QueueReader_SetupTest)
     {
         // Ensures proper initialization/finalization of the framework
         _3fd::core::FrameworkInstance _framework;
@@ -44,26 +44,6 @@ namespace integration_tests
                 "//SvcBrokerTest/IntegrationTestService",
                 MessageTypeSpec { 128UL, MessageContentValidation::None }
             );
-
-            // Read the empty queue
-            auto readOp = queueReader.ReadMessages(512, 0);
-            readOp->Step();
-
-            uint16_t elapsedTime(0);
-            uint16_t waitInterval(50);
-
-            // Await for end of async read:
-            while (!readOp->TryWait(waitInterval))
-            {
-                elapsedTime += waitInterval;
-
-                if (elapsedTime > 5000)
-                    throw core::AppException<std::runtime_error>("Timeout: reading from service broker queue took too long!");
-            }
-
-            EXPECT_EQ(0, readOp->GetStepMessageCount(0));
-
-            EXPECT_TRUE(readOp->Commit(0));
         }
         catch (...)
         {
@@ -74,7 +54,7 @@ namespace integration_tests
     /// <summary>
     /// Tests the setup of a writer for the broker queue.
     /// </summary>
-    TEST(Framework_Broker_BasicTestCase, QueueWriterSetup_Test)
+    TEST(Framework_Broker_BasicTestCase, QueueWriter_SetupTest)
     {
         // Ensures proper initialization/finalization of the framework
         _3fd::core::FrameworkInstance _framework;
@@ -99,9 +79,9 @@ namespace integration_tests
     }
 
     /// <summary>
-    /// Tests rollback of read/write operations in broker queue.
+    /// Tests reading an empty broker queue.
     /// </summary>
-    TEST(Framework_Broker_BasicTestCase, QueueRollback_Test)
+    TEST(Framework_Broker_BasicTestCase, QueueReader_ReadEmptyQueueTest)
     {
         // Ensures proper initialization/finalization of the framework
         _3fd::core::FrameworkInstance _framework;
@@ -112,13 +92,60 @@ namespace integration_tests
         {
             using namespace _3fd::broker;
 
-            const uint16_t numMessages(256);
+            QueueReader queueReader(
+                Backend::MsSqlServer,
+                core::AppConfig::GetSettings().application.GetString(keyForBrokerDbConnStr, UNDEF_BROKER_DB_CONNSTR),
+                "//SvcBrokerTest/IntegrationTestService",
+                MessageTypeSpec{ 128UL, MessageContentValidation::None }
+            );
+
+            // Read the empty queue
+            auto readOp = queueReader.ReadMessages(512, 0);
+
+            uint16_t elapsedTime(0);
+            uint16_t waitInterval(50);
+
+            // Await for end of async read:
+            while (!readOp->TryWait(waitInterval))
+            {
+                elapsedTime += waitInterval;
+
+                if (elapsedTime > 5000)
+                    throw core::AppException<std::runtime_error>("Timeout: reading from service broker queue took too long!");
+            }
+
+            auto messages = readOp->GetStepResult(0);
+            EXPECT_EQ(0, messages.size());
+
+            EXPECT_TRUE(readOp->Commit(0));
+        }
+        catch (...)
+        {
+            HandleException();
+        }
+    }
+
+    /// <summary>
+    /// Tests rollback of read/write operations in broker queue.
+    /// </summary>
+    TEST(Framework_Broker_BasicTestCase, ReadAndWriteQueues_TransactionsTest)
+    {
+        // Ensures proper initialization/finalization of the framework
+        _3fd::core::FrameworkInstance _framework;
+
+        CALL_STACK_TRACE;
+
+        try
+        {
+            using namespace _3fd::broker;
+
+            const uint16_t numMessagesPerStep(256);
             std::vector<string> insertedMessages;
-            insertedMessages.reserve(numMessages);
+            insertedMessages.reserve(numMessagesPerStep);
 
             // Generate messages to write into the queue:
             std::ostringstream oss;
-            for (int idx = 0; idx < numMessages; ++idx)
+            for (int idx = 0; idx < numMessagesPerStep; ++idx)
             {
                 oss << "foobar" << std::setw(4) << idx;
                 insertedMessages.push_back(oss.str());
@@ -149,8 +176,7 @@ namespace integration_tests
             EXPECT_TRUE(writeOp->Rollback(0)); // rollback the insertions
 
             // Read the queue that is supposed to be empty
-            auto readOp = queueReader.ReadMessages(numMessages, 0);
-            readOp->Step();
+            auto readOp = queueReader.ReadMessages(numMessagesPerStep, 0);
 
             uint16_t elapsedTime(0);
             uint16_t waitInterval(50);
@@ -164,8 +190,8 @@ namespace integration_tests
                     throw core::AppException<std::runtime_error>("Timeout: reading from service broker queue took too long!");
             }
 
-            EXPECT_EQ(0, readOp->GetStepMessageCount(0));
-
+            auto messages = readOp->GetStepResult(0);
+            EXPECT_EQ(0, messages.size());
             EXPECT_TRUE(readOp->Commit(0));
 
             // Write again asynchronously
@@ -179,13 +205,10 @@ namespace integration_tests
 
             std::vector<string> selectedMessages;
 
-            uint32_t msgCount;
-            auto readOp2 = queueReader.ReadMessages(numMessages, 0);
+            auto readOp2 = queueReader.ReadMessages(numMessagesPerStep, 0);
 
             while (true)
             {
-                readOp2->Step();
-
                 // Await for end of step:
                 uint16_t elapsedTime(0);
                 while (!readOp2->TryWait(waitInterval))
@@ -196,15 +219,13 @@ namespace integration_tests
                         throw core::AppException<std::runtime_error>("Timeout: reading from service broker queue took too long!");
                 }
 
-                msgCount = readOp2->GetStepMessageCount(0);
-
-                if (msgCount > 0)
-                {
-                    auto stepRes = readOp2->GetStepResult(0);
-                    selectedMessages.insert(selectedMessages.end(), stepRes.begin(), stepRes.end());
-                }
-                else
+                const auto stepRes = readOp2->GetStepResult(0);
+                if (stepRes.empty())
                     break;
+
+                selectedMessages.insert(selectedMessages.end(), stepRes.begin(), stepRes.end());
+
+                readOp2->StepNext();
             }
 
             EXPECT_EQ(insertedMessages.size(), selectedMessages.size());
@@ -216,14 +237,11 @@ namespace integration_tests
             EXPECT_TRUE(readOp2->Rollback(0)); // rollback to keep messages in the queue...
 
             // ... and read the messages for the second time:
-
             selectedMessages.clear();
-            auto readOp3 = queueReader.ReadMessages(numMessages, 0);
+            auto readOp3 = queueReader.ReadMessages(numMessagesPerStep, 0);
 
             while (true)
             {
-                readOp3->Step();
-
                 // Await for end of step:
                 uint16_t elapsedTime(0);
                 while (!readOp3->TryWait(waitInterval))
@@ -234,15 +252,13 @@ namespace integration_tests
                         throw core::AppException<std::runtime_error>("Timeout: reading from service broker queue took too long!");
                 }
 
-                msgCount = readOp3->GetStepMessageCount(0);
-
-                if (msgCount > 0)
-                {
-                    auto stepRes = readOp3->GetStepResult(0);
-                    selectedMessages.insert(selectedMessages.end(), stepRes.begin(), stepRes.end());
-                }
-                else
+                const auto stepRes = readOp3->GetStepResult(0);
+                if (stepRes.empty())
                     break;
+
+                selectedMessages.insert(selectedMessages.end(), stepRes.begin(), stepRes.end());
+
+                readOp3->StepNext();
             }
 
             EXPECT_TRUE(readOp3->Commit(0)); // commit to remove the messages from the queue
@@ -264,7 +280,7 @@ namespace integration_tests
     /// <summary>
     /// Tests writing into and reading from broker queue.
     /// </summary>
-    TEST_P(Framework_Broker_PerformanceTestCase, QueueReadWrite_Test)
+    TEST_P(Framework_Broker_PerformanceTestCase, ReadAndWriteQueues_SpeedTest)
     {
         // Ensures proper initialization/finalization of the framework
         _3fd::core::FrameworkInstance _framework;
@@ -314,16 +330,13 @@ namespace integration_tests
             
             std::vector<string> selectedMessages;
 
-            uint32_t msgCount;
             const uint16_t waitInterval(50);
             const uint16_t msgCountStepLimit(512);
 
             auto readOp = queueReader.ReadMessages(msgCountStepLimit, 0);
 
-            do
+            while (true)
             {
-                readOp->Step();
-
                 // Await for end of step:
                 uint16_t elapsedTime(0);
                 while (!readOp->TryWait(waitInterval))
@@ -334,15 +347,16 @@ namespace integration_tests
                         throw core::AppException<std::runtime_error>("Timeout: reading from service broker queue took too long!");
                 }
 
-                msgCount = readOp->GetStepMessageCount(0);
-
-                if (msgCount > 0)
+                auto stepRes = readOp->GetStepResult(0);
+                if (stepRes.empty())
                 {
-                    auto stepRes = readOp->GetStepResult(0);
-                    selectedMessages.insert(selectedMessages.end(), stepRes.begin(), stepRes.end());
+                    break;
                 }
-                
-            } while (msgCount == msgCountStepLimit);
+
+                selectedMessages.insert(selectedMessages.end(), stepRes.begin(), stepRes.end());
+
+                readOp->StepNext();
+            }
 
             EXPECT_TRUE(readOp->Commit(0));
 

@@ -3,14 +3,15 @@
 #include <3fd/core/callstacktracer.h>
 #include <3fd/core/exceptions.h>
 #include <3fd/core/logger.h>
+#include <3fd/utils/utils_io.h>
+
+#include <chrono>
 #include <sstream>
 
-namespace _3fd
-{
-namespace broker
-{
-    using std::string;
+namespace _3fd {
+namespace broker {
 
+    using std::string;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="QueueReader"/> class.
@@ -26,59 +27,55 @@ namespace broker
                              const string &connString,
                              const string &serviceURL,
                              const MessageTypeSpec &msgTypeSpec)
-    try :
-        m_dbSession(GetConnection(connString)),
-        m_serviceURL(serviceURL)
+    try
+        : m_dbSession(nullptr)
+        , m_serviceURL(serviceURL)
     {
         CALL_STACK_TRACE;
 
         _ASSERTE(svcBrokerBackend == Backend::MsSqlServer);
-
-        using namespace Poco::Data;
-        using namespace Poco::Data::Keywords;
         
+        m_dbSession = dbg_new DatabaseSession(connString);
+
+        using Text = utils::TextPlaceholderReplacementHelper;
+
         // Create message type, contract, queue, service and message content data type:
-        CheckConnection(*m_dbSession) << R"(
-            if not exists ( select * from sys.service_queues where name = N'%s/v1_0_0/Queue' )
-            begin
-                create message type [%s/v1_0_0/Message] validation = %s;
-                create contract [%s/v1_0_0/Contract] ([%s/v1_0_0/Message] sent by initiator);
-                create queue [%s/v1_0_0/Queue] with poison_message_handling (status = off);
-                create service [%s/v1_0_0] on queue [%s/v1_0_0/Queue] ([%s/v1_0_0/Contract]);
-            end;
+        nanodbc::just_execute(m_dbSession->GetConnection(),
+            Text::in('%', R"(
+                if not exists ( select * from sys.service_queues where name = N'%service/v1_0_0/Queue' )
+                begin
+                    create message type [%service/v1_0_0/Message] validation = %validation;
+                    create contract [%service/v1_0_0/Contract] ([%service/v1_0_0/Message] sent by initiator);
+                    create queue [%service/v1_0_0/Queue] with poison_message_handling (status = off);
+                    create service [%service/v1_0_0] on queue [%service/v1_0_0/Queue] ([%service/v1_0_0/Contract]);
+                end;
 
-            if not exists (
-                select * from sys.systypes
-                    where name = N'%s/v1_0_0/Message/ContentType'
-            )
-            begin
-                create type [%s/v1_0_0/Message/ContentType] from varchar(%u);
-            end;
-            )"
-            , serviceURL
-            , serviceURL, ToString(msgTypeSpec.contentValidation)
-            , serviceURL, serviceURL
-            , serviceURL
-            , serviceURL, serviceURL, serviceURL
-
-            // create type
-            , serviceURL
-            , serviceURL, msgTypeSpec.nBytes
-            , now;
+                if not exists (
+                    select * from sys.systypes
+                        where name = N'%service/v1_0_0/Message/ContentType'
+                )
+                begin
+                    create type [%service/v1_0_0/Message/ContentType] from varchar(%nbytes);
+                end;
+            )")
+            .Replace("service", serviceURL)
+            .Replace("validation", ToString(msgTypeSpec.contentValidation))
+            .Use("nbytes", msgTypeSpec.nBytes)
+            .Emit()
+        );
 
         // Create stored procedure to read messages from queue:
 
-        Poco::Nullable<int> stoProcObjId;
-        CheckConnection(*m_dbSession) <<
-            "select object_id(N'%s/v1_0_0/ReadMessagesProc', N'P');"
-            , serviceURL
-            , into(stoProcObjId)
-            , now;
+        auto result = nanodbc::execute(m_dbSession->GetConnection(),
+            Text::in('%', "select object_id(N'%service/v1_0_0/ReadMessagesProc', N'P');")
+                .Replace("service", serviceURL)
+                .Emit()
+        );
 
-        if (stoProcObjId.isNull())
+        if (!result.next())
         {
-            CheckConnection(*m_dbSession) << R"(
-                create procedure [%s/v1_0_0/ReadMessagesProc] (
+            nanodbc::just_execute(m_dbSession->GetConnection(), Text::in('%', R"(
+                create procedure [%service/v1_0_0/ReadMessagesProc] (
                     @recvMsgCountLimit int
                     ,@recvTimeoutMilisecs int
                 ) as
@@ -91,7 +88,7 @@ namespace broker
                             queuing_order        bigint
                             ,conversation_handle uniqueidentifier
                             ,message_type_name   sysname
-                            ,message_body        [%s/v1_0_0/Message/ContentType]
+                            ,message_body        [%service/v1_0_0/Message/ContentType]
                         );
 
                         waitfor(
@@ -100,22 +97,22 @@ namespace broker
                                     ,conversation_handle
                                     ,message_type_name
                                     ,message_body
-                                from [%s/v1_0_0/Queue]
+                                from [%service/v1_0_0/Queue]
                                 into @ReceivedMessages
                         )
                         ,timeout @recvTimeoutMilisecs;
         
-                        declare @RowsetOut        table (content [%s/v1_0_0/Message/ContentType]);
+                        declare @RowsetOut        table (content [%service/v1_0_0/Message/ContentType]);
                         declare @prevDialogHandle uniqueidentifier;
                         declare @dialogHandle     uniqueidentifier;
                         declare @msgTypeName      sysname;
-                        declare @msgContent       [%s/v1_0_0/Message/ContentType];
+                        declare @msgContent       [%service/v1_0_0/Message/ContentType];
 
                         declare cursorMsg
                             cursor forward_only read_only
                             for select conversation_handle
-                                       ,message_type_name
-                                       ,message_body
+                                        ,message_type_name
+                                        ,message_body
                                 from @ReceivedMessages
                                 order by queuing_order;
 
@@ -127,7 +124,7 @@ namespace broker
                             if @dialogHandle <> @prevDialogHandle and @prevDialogHandle is not null
                                 end conversation @prevDialogHandle;
 
-                            if @msgTypeName = '%s/v1_0_0/Message'
+                            if @msgTypeName = '%service/v1_0_0/Message'
                                 insert into @RowsetOut values (@msgContent);
 
                             else if @msgTypeName = 'http://schemas.microsoft.com/SQL/ServiceBroker/Error'
@@ -149,7 +146,7 @@ namespace broker
 
                         receive top (1)
                             @dialogHandle = conversation_handle
-                            from [%s/v1_0_0/Queue];
+                            from [%service/v1_0_0/Queue];
 
                         rollback transaction doneReceiving;
 
@@ -166,18 +163,10 @@ namespace broker
                     throw;
 
                 end catch;
-                )"
-                , serviceURL
-                , serviceURL
-                , serviceURL
-                , serviceURL
-                , serviceURL
-                , serviceURL
-                , serviceURL
-                , now;
+            )")
+            .Replace("service", serviceURL)
+            .Emit());
         }
-
-        CheckConnection(*m_dbSession).setFeature("autoCommit", false);
 
         std::ostringstream oss;
         oss << "Initialized successfully the reader for broker queue '" << serviceURL
@@ -185,53 +174,40 @@ namespace broker
 
         core::Logger::Write(oss.str(), core::Logger::PRIO_INFORMATION);
     }
-    catch (Poco::Data::DataException &ex)
+    catch (...)
     {
-        CALL_STACK_TRACE;
-        std::ostringstream oss;
-        oss << "Failed to create broker queue reader. "
-               "POCO C++ reported a data access error: " << ex.name();
-
-        throw core::AppException<std::runtime_error>(oss.str(), ex.message());
+        delete m_dbSession;
+        HandleException("creating reader for broker queue");
     }
-    catch (Poco::Exception &ex)
-    {
-        CALL_STACK_TRACE;
-        std::ostringstream oss;
-        oss << "Failed to create broker queue reader. "
-               "POCO C++ reported a generic error - " << ex.name();
-
-        if (!ex.message().empty())
-            oss << ": " << ex.message();
-
-        throw core::AppException<std::runtime_error>(oss.str());
-    }
-    catch (std::exception &ex)
-    {
-        CALL_STACK_TRACE;
-        std::ostringstream oss;
-        oss << "Generic failure prevented creation of broker queue reader: " << ex.what();
-        throw core::AppException<std::runtime_error>(oss.str());
-    }
-
 
     /// <summary>
     /// Controls retrieval of results from asynchronous read of queue.
     /// This implementation is NOT THREAD SAFE!
     /// </summary>
-    /// <seealso cref="notcopiable" />
     class AsyncReadImpl : public IAsyncRead
     {
     private:
 
-        Poco::Data::Session &m_dbSession;
-        std::unique_ptr<Poco::Data::Statement> m_stoProcExecStmt;
-        std::unique_ptr<Poco::ActiveResult<size_t>> m_stoProcActRes;
+        AsyncTransactionImpl m_transaction;
+        nanodbc::statement m_stoProcExecStmt;
+        std::future<void> m_stoProcFuture;
         std::vector<string> m_messages;
 
     public:
 
         AsyncReadImpl(const AsyncReadImpl &) = delete;
+
+        virtual ~AsyncReadImpl() = default;
+
+        void CallbackStoredProcedure()
+        {
+            auto result = nanodbc::execute(m_stoProcExecStmt);
+
+            m_messages.reserve(m_messages.size() + result.rows());
+
+            while (result.next())
+                m_messages.push_back(result.get<string>(0));
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AsyncReadImpl" /> class.
@@ -241,349 +217,94 @@ namespace broker
         /// retrieved at most at each asynchronous execution step.</param>
         /// <param name="msgRecvTimeout">The timeout (in ms) when the backend awaits for messages.</param>
         /// <param name="serviceURL">The service URL.</param>
-        AsyncReadImpl(Poco::Data::Session &dbSession,
+        AsyncReadImpl(DatabaseSession &dbSession,
                       uint16_t msgCountStepLimit,
                       uint16_t msgRecvTimeout,
                       const string &serviceURL)
-        try :
-            m_dbSession(dbSession)
-        {
-            CALL_STACK_TRACE;
-
-            using namespace Poco::Data::Keywords;
-
-            m_stoProcExecStmt.reset(
-                dbg_new Poco::Data::Statement(CheckConnection(dbSession))
-            );
-
-            std::ostringstream oss;
-            oss << "exec [" << serviceURL << "/v1_0_0/ReadMessagesProc] "
-                << msgCountStepLimit << ", " << msgRecvTimeout << ";";
-            
-            *m_stoProcExecStmt << oss.str(), into(m_messages);
-
-            CheckConnection(dbSession).begin();
-
-            m_messages.reserve(msgCountStepLimit);
-        }
-        catch (Poco::Data::DataException &ex)
-        {
-            CALL_STACK_TRACE;
-            std::ostringstream oss;
-            oss << "Failed to read messages from broker queue. "
-                   "POCO C++ reported a data access error: " << ex.name();
-
-            throw core::AppException<std::runtime_error>(oss.str(), ex.message());
-        }
-        catch (Poco::Exception &ex)
-        {
-            CALL_STACK_TRACE;
-            std::ostringstream oss;
-            oss << "Failed to read messages from broker queue. "
-                   "POCO C++ reported a generic error - " << ex.name();
-
-            if (!ex.message().empty())
-                oss << ": " << ex.message();
-
-            throw core::AppException<std::runtime_error>(oss.str());
-        }
-        catch (std::exception &ex)
-        {
-            CALL_STACK_TRACE;
-            std::ostringstream oss;
-            oss << "Generic failure prevented reading from broker queue: " << ex.what();
-            throw core::AppException<std::runtime_error>(oss.str());
-        }
-
-
-        /// <summary>
-        /// Finalizes an instance of the <see cref="AsyncReadImpl"/> class.
-        /// </summary>
-        virtual ~AsyncReadImpl()
+            : m_transaction(dbSession, m_stoProcFuture)
         {
             CALL_STACK_TRACE;
 
             try
             {
-                if (m_stoProcActRes && !TryWait(5000))
-                {
-                    core::Logger::Write("Await for end of asynchronous read from broker queue has timed "
-                                        "out (5 secs) before releasing resources of running statement",
-                                        core::Logger::PRIO_CRITICAL, true);
-                }
+                std::array<char, 256> buffer;
+                size_t length = utils::SerializeTo(buffer,
+                                                   "exec [", serviceURL, "/v1_0_0/ReadMessagesProc] ",
+                                                   msgCountStepLimit, ", ", msgRecvTimeout, ";");
 
-                if (m_dbSession.isTransaction())
-                    m_dbSession.rollback();
-            }
-            catch (core::IAppException &ex)
-            {
-                core::Logger::Write(ex, core::Logger::PRIO_CRITICAL);
-            }
-            catch (Poco::Data::DataException &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to end transaction reading messages from broker queue. "
-                       "POCO C++ reported a data access error: " << ex.name();
-
-                core::Logger::Write(oss.str(), ex.message(), core::Logger::PRIO_CRITICAL, true);
-            }
-            catch (Poco::Exception &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to end transaction reading messages from broker queue. "
-                       "POCO C++ reported a generic error - " << ex.name() << ": " << ex.message();
-
-                core::Logger::Write(oss.str(), core::Logger::PRIO_CRITICAL, true);
-            }
-        }
-
-        /// <summary>
-        /// Evaluates whether the last asynchronous read step is finished.
-        /// </summary>
-        /// <returns>
-        ///   <c>true</c> when finished, otherwise, <c>false</c>.
-        /// </returns>
-        virtual bool HasJoined() const override
-        {
-            CALL_STACK_TRACE;
-
-            try
-            {
-                _ASSERTE(m_stoProcActRes); // cannot evaluate completion of task before starting it by stepping into execution
-                return m_stoProcActRes->available();
-            }
-            catch (Poco::Exception &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to evaluate status of broker queue read operation. "
-                       "POCO C++ reported an error - " << ex.name() << ": " << ex.message();
-
-                throw core::AppException<std::runtime_error>(oss.str());
-            }
-        }
-
-        /// <summary>
-        /// Waits for the last asynchronous read step to finish.
-        /// </summary>
-        /// <param name="timeout">The timeout in milliseconds.</param>
-        /// <returns>
-        ///   <c>true</c> if any message could be retrieved, otherwise, <c>false</c>.
-        /// </returns>
-        virtual bool TryWait(uint16_t timeout) override
-        {
-            CALL_STACK_TRACE;
-
-            bool isAwaitEndOkay;
-
-            try
-            {
-                _ASSERTE(m_stoProcActRes); // cannot evaluate completion of task before starting it by stepping into execution
-                isAwaitEndOkay = m_stoProcActRes->tryWait(timeout);
-            }
-            catch (Poco::Exception &ex)
-            {
-                std::ostringstream oss;
-                oss << "There was a failure when awaiting for the end of a read operation step in broker queue. "
-                       "POCO C++ reported an error - " << ex.name();
-
-                if (!ex.message().empty())
-                    oss << ": " << ex.message();
-
-                throw core::AppException<std::runtime_error>(oss.str());
-            }
-
-            if (isAwaitEndOkay && m_stoProcActRes->failed())
-            {
-                std::ostringstream oss;
-                oss << "Failed to read broker queue: " << m_stoProcActRes->error();
-                throw core::AppException<std::runtime_error>(oss.str());
-            }
-
-            return isAwaitEndOkay;
-        }
-
-        /// <summary>
-        /// Start the asynchronous execution of the next step.
-        /// </summary>
-        virtual void Step() override
-        {
-            CALL_STACK_TRACE;
-
-            try
-            {
-                if (m_stoProcActRes)
-                {
-                    if (!m_stoProcActRes->available())
-                        throw core::AppException<std::logic_error>("Could not step into "
-                            "execution because the last asynchronous operation is pending!");
-
-                    m_messages.clear();
-                }
-
-                m_stoProcActRes.reset(
-                    dbg_new Poco::ActiveResult<size_t>(m_stoProcExecStmt->executeAsync())
+                m_stoProcExecStmt = nanodbc::statement(
+                    dbSession.GetConnection(),
+                    nanodbc::string(buffer.data(), length)
                 );
-            }
-            catch (core::IAppException &)
-            {
-                throw; // just forward exceptions raised for errors known to have been already handled
-            }
-            catch (Poco::Exception &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to step into execution of broker queue read. "
-                       "POCO C++ reported an error - " << ex.name();
 
-                if (!ex.message().empty())
-                    oss << ": " << ex.message();
-
-                throw core::AppException<std::runtime_error>(oss.str());
+                m_stoProcFuture = std::async(std::launch::async,
+                                             &AsyncReadImpl::CallbackStoredProcedure,
+                                             this);
             }
-            catch (std::exception &ex)
-            {
-                std::ostringstream oss;
-                oss << "Generic failure prevented stepping into execution of broker queue read: " << ex.what();
-                throw core::AppException<std::runtime_error>(oss.str());
-            }
+            catch_and_handle_exception("setting up to read messages asynchronously from broker queue")
         }
 
-        /// <summary>
-        /// Gets the count of retrieved messages in the last step execution.
-        /// </summary>
-        /// <param name="timeout">The timeout in milliseconds.</param>
-        /// <returns>How many messages were read from the queue after
-        /// waiting for completion of asynchronous read operation.
-        /// Subsequent calls or calls that time out will return zero.</returns>
-        virtual uint32_t GetStepMessageCount(uint16_t timeout) override
+        /// <inheritdoc/>
+        bool TryWait(uint16_t timeout) override
+        {
+            CALL_STACK_TRACE;
+            return m_transaction.TryWait(timeout);
+        }
+
+        /// <inheritdoc/>
+        void StepNext() override
         {
             CALL_STACK_TRACE;
 
-            _ASSERTE(m_stoProcActRes); // cannot evaluate completion of task before starting it by stepping into execution
+            try
+            {
+                if (!TryWait(0))
+                {
+                    throw core::AppException<std::logic_error>("Could not step into execution because the "
+                                                               "last asynchronous operation is pending!");
+                }
 
-            if (TryWait(timeout))
-                return static_cast<uint32_t>(m_stoProcExecStmt->subTotalRowCount());
-
-            return 0;
+                m_stoProcFuture = std::async(std::launch::async,
+                                             &AsyncReadImpl::CallbackStoredProcedure,
+                                             this);
+            }
+            catch_and_handle_exception("stepping into execution of broker queue read procedure")
         }
 
-        /// <summary>
-        /// Gets the result from the last asynchronous step execution.
-        /// </summary>
-        /// <param name="timeout">The timeout in milliseconds.</param>
-        /// <returns>A vector of read messages after waiting for completion of
-        /// asynchronous read operation. Subsequent calls or calls that time out
-        /// will return an empty vector. The retrieved messages are not guaranteed
-        /// to appear in the same order they had when inserted.</returns>
+        /// <inheritdoc/>
         virtual std::vector<string> GetStepResult(uint16_t timeout) override
         {
             CALL_STACK_TRACE;
 
-            _ASSERTE(m_stoProcActRes); // cannot evaluate completion of task before starting it by stepping into execution
-
-            if (!TryWait(timeout))
-                return std::vector<string>();
-
-            std::vector<string> result;
-
-            if (!m_messages.empty())
-            {
-                auto msgVecSize = m_messages.size();
-                auto msgVecCap = m_messages.capacity();
-
-                m_messages.swap(result);
-
-                // Last step retrieved a full rowset?
-                if (msgVecCap == msgVecSize)
-                    m_messages.reserve(msgVecCap);
-            }
-
-            return std::move(result);
-        }
-
-        /// <summary>
-        /// Rolls back the changes accumulated in the current transaction.
-        /// The messages extracted in all steps from the broker queue are
-        /// put back in place.
-        /// </summary>
-        /// <returns>
-        ///   <c>true</c> if current transaction was successfully rolled back, otherwise, <c>false</c>.
-        /// </returns>
-        virtual bool Rollback(uint16_t timeout) override
-        {
-            CALL_STACK_TRACE;
-
             try
             {
-                _ASSERTE(m_dbSession.isTransaction()); // must be in a transaction
-
                 if (!TryWait(timeout))
-                    return false;
+                    return std::vector<string>();
 
-                m_dbSession.rollback();
-                return true;
+                if (m_stoProcFuture.valid())
+                    m_stoProcFuture.get(); // transport exception from exec thread
+
+                std::vector<string> result;
+                result.swap(m_messages);
+                return result;
             }
-            catch (Poco::Data::DataException &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to rollback transaction reading messages from broker queue. "
-                       "POCO C++ reported a data access error: " << ex.name();
-
-                throw core::AppException<std::runtime_error>(oss.str(), ex.message());
-            }
-            catch (Poco::Exception &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to rollback transaction reading messages from broker queue. "
-                       "POCO C++ reported a generic error - " << ex.name();
-
-                if (!ex.message().empty())
-                    oss << ": " << ex.message();
-
-                throw core::AppException<std::runtime_error>(oss.str());
-            }
+            catch_and_handle_exception("retrieving messages read from broker queue")
         }
 
-        /// <summary>
-        /// Commits in persistent storage all the changes accumulated in the
-        /// current transaction. The messages extracted in all steps so far
-        /// from the broker queue are permanently removed.
-        /// </summary>
-        /// <returns>
-        ///   <c>true</c> if current transaction was successfully committed, otherwise, <c>false</c>.
-        /// </returns>
-        virtual bool Commit(uint16_t timeout) override
+        /// <inheritdoc/>
+        bool Rollback(uint16_t timeout) override
         {
             CALL_STACK_TRACE;
+            bool status = m_transaction.Rollback(timeout);
+            m_messages.clear();
+            return status;
+        }
 
-            try
-            {
-                _ASSERTE(m_dbSession.isTransaction()); // must be in a transaction
-
-                if (!TryWait(timeout))
-                    return false;
-
-                m_dbSession.commit();
-                return true;
-            }
-            catch (Poco::Data::DataException &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to commit transaction reading messages from broker queue. "
-                       "POCO C++ reported a data access error: " << ex.name();
-
-                throw core::AppException<std::runtime_error>(oss.str(), ex.message());
-            }
-            catch (Poco::Exception &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to commit transaction reading messages from broker queue. "
-                       "POCO C++ reported a generic error - " << ex.name();
-
-                if (!ex.message().empty())
-                    oss << ": " << ex.message();
-
-                throw core::AppException<std::runtime_error>(oss.str());
-            }
+        /// <inheritdoc/>
+        bool Commit(uint16_t timeout) override
+        {
+            CALL_STACK_TRACE;
+            return m_transaction.Commit(timeout);
         }
 
     };// end of class AsyncReadImpl
@@ -603,9 +324,9 @@ namespace broker
         {
             return std::unique_ptr<IAsyncRead>(
                 dbg_new AsyncReadImpl(*m_dbSession,
-                                  msgCountStepLimit,
-                                  msgRecvTimeout,
-                                  m_serviceURL)
+                                      msgCountStepLimit,
+                                      msgRecvTimeout,
+                                      m_serviceURL)
             );
         }
         catch (core::IAppException &)

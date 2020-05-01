@@ -3,15 +3,15 @@
 #include <3fd/core/callstacktracer.h>
 #include <3fd/core/exceptions.h>
 #include <3fd/core/logger.h>
+#include <3fd/utils/utils_io.h>
+
 #include <future>
 #include <sstream>
 
-namespace _3fd
-{
-namespace broker
-{
-    using std::string;
+namespace _3fd {
+namespace broker {
 
+    using std::string;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="QueueWriter"/> class.
@@ -28,81 +28,67 @@ namespace broker
                              const string &serviceURL,
                              const MessageTypeSpec &msgTypeSpec)
     try :
-        m_dbSession(GetConnection(connString)),
+        m_dbSession(nullptr),
         m_serviceURL(serviceURL)
     {
         CALL_STACK_TRACE;
 
         _ASSERTE(svcBrokerBackend == Backend::MsSqlServer);
 
-        using namespace Poco::Data;
-        using namespace Poco::Data::Keywords;
-        
+        m_dbSession = dbg_new DatabaseSession(connString);
+
+        using Text = utils::TextPlaceholderReplacementHelper;
+
         // Create message type, contract, queue, service, message content data type and input stage table:
-        CheckConnection(*m_dbSession) << R"(
-            if not exists ( select * from sys.service_queues where name = N'%s/v1_0_0/Queue' )
-            begin
-                create message type [%s/v1_0_0/Message] validation = %s;
-                create contract [%s/v1_0_0/Contract] ([%s/v1_0_0/Message] sent by initiator);
-                create queue [%s/v1_0_0/Queue] with poison_message_handling (status = off);
-                create service [%s/v1_0_0] on queue [%s/v1_0_0/Queue] ([%s/v1_0_0/Contract]);
-            end;
+        nanodbc::just_execute(m_dbSession->GetConnection(),
+            Text::in('%', R"(
+                if not exists ( select * from sys.service_queues where name = N'%service/v1_0_0/Queue' )
+                begin
+                    create message type [%service/v1_0_0/Message] validation = %validation;
+                    create contract [%service/v1_0_0/Contract] ([%service/v1_0_0/Message] sent by initiator);
+                    create queue [%service/v1_0_0/Queue] with poison_message_handling (status = off);
+                    create service [%service/v1_0_0] on queue [%service/v1_0_0/Queue] ([%service/v1_0_0/Contract]);
+                end;
 
-            if not exists ( select * from sys.service_queues where name = N'%s/v1_0_0/ResponseQueue' )
-            begin
-                create queue [%s/v1_0_0/ResponseQueue];
-                create service [%s/v1_0_0/Sender] on queue [%s/v1_0_0/ResponseQueue];
-            end;
+                if not exists ( select * from sys.service_queues where name = N'%service/v1_0_0/ResponseQueue' )
+                begin
+                    create queue [%service/v1_0_0/ResponseQueue];
+                    create service [%service/v1_0_0/Sender] on queue [%service/v1_0_0/ResponseQueue];
+                end;
 
-            if not exists (
-                select * from sys.systypes
-                    where name = N'%s/v1_0_0/Message/ContentType'
-            )
-            begin
-                create type [%s/v1_0_0/Message/ContentType] from varchar(%u);
-            end;
+                if not exists (
+                    select * from sys.systypes
+                        where name = N'%service/v1_0_0/Message/ContentType'
+                )
+                begin
+                    create type [%service/v1_0_0/Message/ContentType] from varchar(%nbytes);
+                end;
 
-            if not exists (
-                select * from sys.tables
-                    where name = N'%s/v1_0_0/InputStageTable'
-            )
-            begin
-                create table [%s/v1_0_0/InputStageTable] (content [%s/v1_0_0/Message/ContentType]);
-            end;
-            )"
-            , serviceURL
-            , serviceURL, ToString(msgTypeSpec.contentValidation)
-            , serviceURL, serviceURL
-            , serviceURL
-            , serviceURL, serviceURL, serviceURL
-
-            // create queue ResponseQueue
-            , serviceURL
-            , serviceURL
-            , serviceURL, serviceURL
-
-            // create type Message/ContentType
-            , serviceURL
-            , serviceURL, msgTypeSpec.nBytes
-
-            // create table InputStageTable
-            , serviceURL
-            , serviceURL, serviceURL
-            , now;
+                if not exists (
+                    select * from sys.tables
+                        where name = N'%service/v1_0_0/InputStageTable'
+                )
+                begin
+                    create table [%service/v1_0_0/InputStageTable] (content [%service/v1_0_0/Message/ContentType]);
+                end;
+            )")
+            .Replace("service", serviceURL)
+            .Replace("validation", ToString(msgTypeSpec.contentValidation))
+            .Use("nbytes", msgTypeSpec.nBytes)
+            .Emit()
+        );
 
         // Create stored procedure to send messages to service queue:
+        auto result = nanodbc::execute(m_dbSession->GetConnection(),
+            Text::in('%', "select object_id(N'%service/v1_0_0/SendMessagesProc', N'P');")
+                .Replace("service", serviceURL)
+                .Emit()
+        );
 
-        Poco::Nullable<int> stoProcObjId;
-        CheckConnection(*m_dbSession) <<
-            "select object_id(N'%s/v1_0_0/SendMessagesProc', N'P');"
-            , serviceURL
-            , into(stoProcObjId)
-            , now;
-
-        if (stoProcObjId.isNull())
+        if (!result.next())
         {
-            CheckConnection(*m_dbSession) << R"(
-                create procedure [%s/v1_0_0/SendMessagesProc] as
+            nanodbc::just_execute(m_dbSession->GetConnection(), Text::in('%', R"(
+                create procedure [%service/v1_0_0/SendMessagesProc] as
                 begin try
                     begin transaction;
 
@@ -111,15 +97,15 @@ namespace broker
                         declare @dialogHandle uniqueidentifier;
 
                         begin dialog @dialogHandle
-                            from service [%s/v1_0_0/Sender]
-                            to service '%s/v1_0_0'
-                            on contract [%s/v1_0_0/Contract]
+                            from service [%service/v1_0_0/Sender]
+                            to service '%service/v1_0_0'
+                            on contract [%service/v1_0_0/Contract]
                             with encryption = off;
 
-                        declare @msgContent [%s/v1_0_0/Message/ContentType];
+                        declare @msgContent [%service/v1_0_0/Message/ContentType];
 
                         declare cursorMsg cursor for (
-                            select * from [%s/v1_0_0/InputStageTable]
+                            select * from [%service/v1_0_0/InputStageTable]
                         );
 
                         open cursorMsg;
@@ -128,14 +114,14 @@ namespace broker
                         while @@fetch_status = 0
                         begin
                             send on conversation @dialogHandle
-                                message type [%s/v1_0_0/Message] (@msgContent);
+                                message type [%service/v1_0_0/Message] (@msgContent);
 
                             fetch next from cursorMsg into @msgContent;
                         end;
 
                         close cursorMsg;
                         deallocate cursorMsg;
-                        delete from [%s/v1_0_0/InputStageTable];
+                        delete from [%service/v1_0_0/InputStageTable];
 
                     commit transaction;
                 end try
@@ -145,30 +131,22 @@ namespace broker
                     throw;
 
                 end catch;
-                )"
-                , serviceURL
-                , serviceURL
-                , serviceURL
-                , serviceURL
-                , serviceURL
-                , serviceURL
-                , serviceURL
-                , serviceURL
-                , now;
+            )")
+            .Replace("service", serviceURL)
+            .Emit());
         }
 
         // Create stored procedure to finish conversations in the initiator endpoint:
+        result = nanodbc::execute(m_dbSession->GetConnection(),
+            Text::in('%', "select object_id(N'%service/v1_0_0/FinishDialogsOnEndptInitProc', N'P');")
+                .Replace("service", serviceURL)
+                .Emit()
+        );
 
-        CheckConnection(*m_dbSession) <<
-            "select object_id(N'%s/v1_0_0/FinishDialogsOnEndptInitProc', N'P');"
-            , serviceURL
-            , into(stoProcObjId)
-            , now;
-
-        if (stoProcObjId.isNull())
+        if (!result.next())
         {
-            CheckConnection(*m_dbSession) << R"(
-                create procedure [%s/v1_0_0/FinishDialogsOnEndptInitProc] as
+            nanodbc::just_execute(m_dbSession->GetConnection(), Text::in('%', R"(
+                create procedure [%service/v1_0_0/FinishDialogsOnEndptInitProc] as
                 begin try
                     begin transaction;
 
@@ -181,7 +159,7 @@ namespace broker
 
                         receive conversation_handle
                                 ,message_type_name
-                            from [%s/v1_0_0/ResponseQueue]
+                            from [%service/v1_0_0/ResponseQueue]
                             into @ReceivedMessages;
         
                         declare @dialogHandle  uniqueidentifier;
@@ -216,24 +194,17 @@ namespace broker
 
                 end catch;
 
-                alter queue [%s/v1_0_0/ResponseQueue]
+                alter queue [%service/v1_0_0/ResponseQueue]
                     with activation (
                         status = on,
                         max_queue_readers = 1,
-                        procedure_name = [%s/v1_0_0/FinishDialogsOnEndptInitProc],
+                        procedure_name = [%service/v1_0_0/FinishDialogsOnEndptInitProc],
                         execute as owner
                     );
-                )"
-                , serviceURL
-                , serviceURL
-
-                // ALTER QUEUE ResponseQueue
-                , serviceURL
-                , serviceURL
-                , now;
+            )")
+            .Replace("service", serviceURL)
+            .Emit());
         }
-
-        CheckConnection(*m_dbSession).setFeature("autoCommit", false);
 
         std::ostringstream oss;
         oss << "Initialized successfully the writer for broker queue '" << serviceURL
@@ -241,33 +212,10 @@ namespace broker
 
         core::Logger::Write(oss.str(), core::Logger::PRIO_INFORMATION);
     }
-    catch (Poco::Data::DataException &ex)
+    catch (...)
     {
-        CALL_STACK_TRACE;
-        std::ostringstream oss;
-        oss << "Failed to create broker queue writer. "
-               "POCO C++ reported a data access error: " << ex.name();
-
-        throw core::AppException<std::runtime_error>(oss.str(), ex.message());
-    }
-    catch (Poco::Exception &ex)
-    {
-        CALL_STACK_TRACE;
-        std::ostringstream oss;
-        oss << "Failed to create broker queue writer. "
-               "POCO C++ reported a generic error - " << ex.name();
-
-        if (!ex.message().empty())
-            oss << ": " << ex.message();
-
-        throw core::AppException<std::runtime_error>(oss.str());
-    }
-    catch (std::exception &ex)
-    {
-        CALL_STACK_TRACE;
-        std::ostringstream oss;
-        oss << "Generic failure prevented creation of broker queue writer: " << ex.what();
-        throw core::AppException<std::runtime_error>(oss.str());
+        delete m_dbSession;
+        HandleException("creating writer for broker queue");
     }
 
 
@@ -275,291 +223,97 @@ namespace broker
     /// Helps synchronizing with an asynchronous write to a broker queue.
     /// </summary>
     /// <seealso cref="notcopiable" />
-    class AsyncWriteImpl : public IAsyncWrite, public std::promise<void>
+    class AsyncWriteImpl : public IAsyncWrite
     {
     private:
 
-        Poco::Data::Session &m_dbSession;
-        std::unique_ptr<std::future<void>> m_future;
+        AsyncTransactionImpl m_transaction;
+        std::future<void> m_future;
 
     public:
 
         AsyncWriteImpl(const AsyncWriteImpl &) = delete;
 
+        virtual ~AsyncWriteImpl() = default;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="AsyncWriteImpl" /> class.
         /// </summary>
         /// <param name="dbSession">The database session.</param>
-        AsyncWriteImpl(Poco::Data::Session &dbSession)
-        try :
-            std::promise<void>(),
-            m_dbSession(dbSession)
-        {
-            m_future.reset(
-                dbg_new std::future<void>(this->get_future())
-            );
-        }
-        catch (std::future_error &ex)
-        {
-            CALL_STACK_TRACE;
-            std::ostringstream oss;
-            oss << "System error when instantiating helper for synchronization of write operation "
-                   " in broker queue: " << core::StdLibExt::GetDetailsFromFutureError(ex);
-
-            throw core::AppException<std::runtime_error>(oss.str());
-        }
-        catch (std::system_error &ex)
-        {
-            CALL_STACK_TRACE;
-            std::ostringstream oss;
-            oss << "System error when instantiating helper for synchronization of write operation "
-                   " in broker queue: " << core::StdLibExt::GetDetailsFromSystemError(ex);
-
-            throw core::AppException<std::runtime_error>(oss.str());
-        }
-        catch (std::exception &ex)
-        {
-            CALL_STACK_TRACE;
-            std::ostringstream oss;
-            oss << "Generic failure prevented instantiation of helper for synchronization "
-                   " of write operation in broker queue: " << ex.what();
-
-            throw core::AppException<std::runtime_error>(oss.str());
-        }
-
-        /// <summary>
-        /// Finalizes an instance of the <see cref="AsyncWriteImpl"/> class.
-        /// </summary>
-        virtual ~AsyncWriteImpl()
+        /// <param name="serviceURL">The service URL.</param>
+        /// <param name="messages">The messages to write.</param>
+        AsyncWriteImpl(DatabaseSession &dbSession,
+                       const string &serviceURL,
+                       const std::vector<string> &messages)
+            : m_transaction(dbSession, m_future)
         {
             CALL_STACK_TRACE;
 
             try
             {
-                if (!TryWait(5000))
+                std::array<char, 256> buffer;
+                size_t length = utils::SerializeTo(buffer,
+                    "insert into [", serviceURL, "/v1_0_0/InputStageTable] (content) values (?);");
+
+                auto stageInsertStatement =
+                    std::make_shared<nanodbc::statement>(m_transaction.GetConnection(),
+                                                         nanodbc::string(buffer.data(), length));
+
+                stageInsertStatement->bind_strings(0, messages);
+
+                const size_t batchSize = messages.size();
+
+                length = utils::SerializeTo(buffer,
+                                            "exec [", serviceURL, "/v1_0_0/SendMessagesProc];");
+
+                auto stoProcStatement =
+                    std::make_shared<nanodbc::statement>(m_transaction.GetConnection(),
+                                                         nanodbc::string(buffer.data(), length));
+
+                m_future = std::async(std::launch::async, [batchSize, stageInsertStatement, stoProcStatement]()
                 {
-                    core::Logger::Write("Await for end of asynchronous write into broker queue has timed "
-                                        "out (5 secs) before releasing resources of running statement",
-                                        core::Logger::PRIO_CRITICAL, true);
-                }
-
-                if (m_dbSession.isTransaction())
-                    m_dbSession.rollback();
+                    nanodbc::just_execute(*stageInsertStatement, batchSize);
+                    nanodbc::just_execute(*stoProcStatement);
+                });
             }
-            catch (core::IAppException &ex)
-            {
-                core::Logger::Write(ex, core::Logger::PRIO_CRITICAL);
-            }
-            catch (Poco::Data::DataException &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to end transaction writing messages into broker queue. "
-                       "POCO C++ reported a data access error: " << ex.name();
-
-                core::Logger::Write(oss.str(), ex.message(), core::Logger::PRIO_CRITICAL, true);
-            }
-            catch (Poco::Exception &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to end transaction writing messages into broker queue. "
-                       "POCO C++ reported a generic error - " << ex.name();
-
-                if (!ex.message().empty())
-                    oss << ": " << ex.message();
-
-                core::Logger::Write(oss.str(), core::Logger::PRIO_CRITICAL, true);
-            }
+            catch_and_handle_exception("launching asynchronous task to write into broker queue")
         }
 
-        /// <summary>
-        /// Evaluates whether the last asynchronous write operation is finished.
-        /// </summary>
-        /// <returns>
-        ///   <c>true</c> when finished, otherwise, <c>false</c>.
-        /// </returns>
-        virtual bool IsFinished() const override
+        /// <inheritdoc/>
+        bool TryWait(uint16_t timeout) override
         {
-            return !m_future->valid() ||
-                m_future->wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+            CALL_STACK_TRACE;
+            return m_transaction.TryWait(timeout);
         }
 
-        /// <summary>
-        /// Waits for the last asynchronous write operation to finish.
-        /// </summary>
-        /// <param name="timeout">The timeout in milliseconds.</param>
-        /// <returns>
-        ///   <c>true</c> if the operation is finished, otherwise, <c>false</c>.
-        /// </returns>
-        virtual bool TryWait(uint16_t timeout) override
-        {
-            return !m_future->valid() ||
-                m_future->wait_for(std::chrono::milliseconds(timeout)) == std::future_status::ready;
-        }
-
-        /// <summary>
-        /// Rethrows any eventual exception captured in the worker thread.
-        /// </summary>
+        /// <inheritdoc/>
         virtual void Rethrow() override
         {
             CALL_STACK_TRACE;
 
             try
             {
-                m_future->get();
+                _ASSERTE(m_future.valid()); // not supposed to be called twice!
+                m_future.get();
             }
-            catch (Poco::Data::DataException &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to write messages into broker queue. "
-                       "POCO C++ reported a data access error: " << ex.name();
-
-                throw core::AppException<std::runtime_error>(oss.str(), ex.message());
-            }
-            catch (Poco::Exception &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to write messages into broker queue. "
-                       "POCO C++ reported a generic error - " << ex.name();
-
-                if (!ex.message().empty())
-                    oss << ": " << ex.message();
-
-                throw core::AppException<std::runtime_error>(oss.str());
-            }
-            catch (std::exception &ex)
-            {
-                std::ostringstream oss;
-                oss << "Generic failure prevented writing into broker queue: " << ex.what();
-                throw core::AppException<std::runtime_error>(oss.str());
-            }
+            catch_and_handle_exception("writing messages into broker queue")
         }
 
-        /// <summary>
-        /// Rolls back the changes accumulated in the current transaction,
-        /// erasing all messages written into the broker queue by the call
-        /// that originated this object and began such transaction.
-        /// </summary>
-        /// <param name="timeout">The timeout in milliseconds.</param>
-        /// <returns>
-        ///   <c>true</c> if current transaction was successfully rolled back, otherwise, <c>false</c>.
-        /// </returns>
-        virtual bool Rollback(uint16_t timeout) override
+        /// <inheritdoc/>
+        bool Rollback(uint16_t timeout) override
         {
             CALL_STACK_TRACE;
-
-            try
-            {
-                _ASSERTE(m_dbSession.isTransaction()); // must be in a transaction
-
-                if (!TryWait(timeout))
-                    return false;
-
-                m_dbSession.rollback();
-                return true;
-            }
-            catch (Poco::Data::DataException &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to rollback transaction writing messages into broker queue. "
-                       "POCO C++ reported a data access error: " << ex.name();
-
-                throw core::AppException<std::runtime_error>(oss.str(), ex.message());
-            }
-            catch (Poco::Exception &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to rollback transaction writing messages into broker queue. "
-                       "POCO C++ reported a generic error - " << ex.name();
-
-                if (!ex.message().empty())
-                    oss << ": " << ex.message();
-
-                throw core::AppException<std::runtime_error>(oss.str());
-            }
+            return m_transaction.Rollback(timeout);
         }
 
-        /// <summary>
-        /// Commits in persistent storage all the changes accumulated in the current
-        /// transaction, which began in the call that originated this object.
-        /// </summary>
-        /// <param name="timeout">The timeout in milliseconds.</param>
-        /// <returns>
-        ///   <c>true</c> if current transaction was successfully committed, otherwise, <c>false</c>.
-        /// </returns>
-        virtual bool Commit(uint16_t timeout) override
+        /// <inheritdoc/>
+        bool Commit(uint16_t timeout) override
         {
             CALL_STACK_TRACE;
-
-            try
-            {
-                _ASSERTE(m_dbSession.isTransaction()); // must be in a transaction
-
-                if (!TryWait(timeout))
-                    return false;
-
-                m_dbSession.commit();
-                return true;
-            }
-            catch (Poco::Data::DataException &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to commit transaction writing messages into broker queue. "
-                       "POCO C++ reported a data access error: " << ex.name();
-
-                throw core::AppException<std::runtime_error>(oss.str(), ex.message());
-            }
-            catch (Poco::Exception &ex)
-            {
-                std::ostringstream oss;
-                oss << "Failed to commit transaction writing messages into broker queue. "
-                       "POCO C++ reported a generic error - " << ex.name();
-
-                if (!ex.message().empty())
-                    oss << ": " << ex.message();
-
-                throw core::AppException<std::runtime_error>(oss.str());
-            }
+            return m_transaction.Commit(timeout);
         }
 
     };// end of AsyncWriteImpl class
-
-
-    // Synchronously put the messages into the broker queue
-    static void PutInQueueImpl(Poco::Data::Session &dbSession,
-                               const std::vector<string> &messages,
-                               const string &serviceURL,
-                               std::promise<void> &result)
-    {
-        using namespace Poco::Data;
-        using namespace Poco::Data::Keywords;
-
-        try
-        {
-            CheckConnection(dbSession).begin();
-
-            CheckConnection(dbSession)
-                << "insert into [%s/v1_0_0/InputStageTable] (content) values (?);"
-                , serviceURL
-                , useRef(messages)
-                , now;
-
-            CheckConnection(dbSession)
-                << "exec [%s/v1_0_0/SendMessagesProc];"
-                , serviceURL
-                , now;
-
-            result.set_value();
-        }
-        catch (...)
-        {
-            if (dbSession.isConnected() && dbSession.isTransaction())
-                dbSession.rollback();
-
-            // transport exception to main thread via promise
-            result.set_exception(std::current_exception());
-        }
-    }
-
 
     /// <summary>
     /// Asychonously writes the messages into the queue.
@@ -572,89 +326,11 @@ namespace broker
 
         try
         {
-            if (m_workerThread && m_workerThread->joinable())
-                m_workerThread->join();
-
-            std::unique_ptr<IAsyncWrite> result(dbg_new AsyncWriteImpl(*m_dbSession));
-            
-            m_workerThread.reset(
-                dbg_new std::thread(&PutInQueueImpl,
-                                std::ref(*m_dbSession),
-                                std::ref(messages),
-                                m_serviceURL,
-                                std::ref(static_cast<AsyncWriteImpl &> (*result)))
+            return std::unique_ptr<IAsyncWrite>(
+                dbg_new AsyncWriteImpl(*m_dbSession, m_serviceURL, messages)
             );
-
-            return std::move(result);
         }
-        catch (core::IAppException &)
-        {
-            throw; // just forward exceptions from errors known to have been already handled
-        }
-        catch (Poco::Data::DataException &ex)
-        {
-            std::ostringstream oss;
-            oss << "Failed to write messages into broker queue. "
-                   "POCO C++ reported a data access error: " << ex.name();
-
-            throw core::AppException<std::runtime_error>(oss.str(), ex.message());
-        }
-        catch (Poco::Exception &ex)
-        {
-            std::ostringstream oss;
-            oss << "Failed to write messages into broker queue. "
-                   "POCO C++ reported a generic error - " << ex.name();
-
-            if (!ex.message().empty())
-                oss << ": " << ex.message();
-
-            throw core::AppException<std::runtime_error>(oss.str());
-        }
-        catch (std::future_error &ex)
-        {
-            std::ostringstream oss;
-            oss << "System error when attempting to write asynchronously into broker queue: "
-                << core::StdLibExt::GetDetailsFromFutureError(ex);
-
-            throw core::AppException<std::runtime_error>(oss.str());
-        }
-        catch (std::system_error &ex)
-        {
-            std::ostringstream oss;
-            oss << "System error when attempting to write asynchronously into broker queue: "
-                << core::StdLibExt::GetDetailsFromSystemError(ex);
-
-            throw core::AppException<std::runtime_error>(oss.str());
-        }
-        catch (std::exception &ex)
-        {
-            std::ostringstream oss;
-            oss << "Generic failure prevented writing into broker queue: " << ex.what();
-            throw core::AppException<std::runtime_error>(oss.str());
-        }
-    }
-
-
-    /// <summary>
-    /// Finalizes an instance of the <see cref="QueueWriter"/> class.
-    /// </summary>
-    QueueWriter::~QueueWriter()
-    {
-        CALL_STACK_TRACE;
-
-        try
-        {
-            if (m_workerThread && m_workerThread->joinable())
-                m_workerThread->join();
-        }
-        catch (std::system_error &ex)
-        {
-            std::ostringstream oss;
-            oss << "System error when awaiting for worker thread of broker queue writer"
-                << core::StdLibExt::GetDetailsFromSystemError(ex);
-
-            core::Logger::Write(oss.str(), core::Logger::PRIO_CRITICAL);
-        }
+        catch_and_handle_exception("creating new task to write into broker queue")
     }
 
 }// end of namespace broker

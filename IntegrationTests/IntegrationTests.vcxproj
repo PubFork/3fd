@@ -275,6 +275,9 @@ copy "$(SolutionDir)TestShared\calculator.wsdl" "$(TargetDir)"</Command>
     <ProjectReference Include="..\gtest\msvc\gtest-md.vcxproj">
       <Project>{c8f6c172-56f2-4e76-b5fa-c3b423b31be8}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\nanodbc\nanodbc.vcxproj">
+      <Project>{d0320193-9a05-410f-a52e-049638faa95e}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\sqlite3\sqlite3.vcxproj">
       <Project>{ab6d8426-4117-409c-a863-3d1a98c27150}</Project>
     </ProjectReference>
