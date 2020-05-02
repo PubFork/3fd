@@ -244,6 +244,7 @@
     <ClCompile Include="utils_io.cpp" />
     <ClCompile Include="utils_memorypool.cpp" />
     <ClCompile Include="utils_sharedmutex.cpp" />
+    <ClCompile Include="utils_string.cpp" />
     <ClCompile Include="utils_winrt.cpp" />
     <ClCompile Include="xml.cpp" />
   </ItemGroup>

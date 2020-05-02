@@ -5,7 +5,6 @@
 
 #include <array>
 #include <cinttypes>
-#include <cstring>
 #include <condition_variable>
 #include <functional>
 #include <future>
@@ -279,92 +278,6 @@ namespace utils
 
         void Shrink();
     };
-
-    ////////////////////////////////////////////////
-    // Type Manipulation
-    ////////////////////////////////////////////////
-
-    template <typename Type>
-    struct is_string_holder
-    {
-        typedef Type type;
-        typedef const typename std::remove_reference<Type>::type const_non_ref_type;
-
-        static constexpr bool value =
-            std::is_same<const_non_ref_type, const std::string>::value
-            || std::is_same<const_non_ref_type, const std::string>::value
-            || std::is_same<const_non_ref_type, char * const>::value
-            || std::is_same<const_non_ref_type, const char * const>::value;
-    };
-
-    ////////////////////////////////////////////////
-    // String Copy Avoidance
-    ////////////////////////////////////////////////
-    
-    /// <summary>
-    /// Holds a string (UTF-8) without taking ownership.
-    /// </summary>
-    struct CStringViewUtf8
-    {
-        const char * const data;
-        const uint32_t lenBytes;
-
-        CStringViewUtf8(const char *p_data, uint32_t p_lenBytes) noexcept
-            : data(p_data)
-            , lenBytes(p_lenBytes)
-        {
-            // cannot have non-zero length when no string is set!
-            _ASSERTE(data != nullptr || lenBytes == 0);
-        }
-
-        explicit CStringViewUtf8(const char *p_data) noexcept
-            : data(p_data)
-            , lenBytes(p_data != nullptr ? static_cast<uint32_t>(strlen(data)) : 0)
-        {}
-
-        CStringViewUtf8(const char *beginIter, const char *endIter) noexcept
-            : data(beginIter)
-            , lenBytes(static_cast<uint32_t> (std::distance(beginIter, endIter)))
-        {}
-
-        constexpr bool null() const noexcept { return data == nullptr; }
-        
-        constexpr bool empty() const noexcept
-        {
-            _ASSERTE(data != nullptr);
-            return data[0] == 0;
-        }
-
-        constexpr const char *begin() const noexcept { return data; }
-        constexpr const char *cbegin() const noexcept { return begin(); }
-
-        constexpr const char *end() const noexcept { return data + lenBytes; }
-        constexpr const char *cend() const noexcept { return end(); }
-
-        constexpr char operator[](uint32_t index) const noexcept
-        {
-            _ASSERTE(data != nullptr && index < lenBytes);
-            return data[index];
-        }
-
-        std::string to_string() const
-        {
-            _ASSERTE(data != nullptr);
-            return std::string(data, data + lenBytes);
-        }
-    };
-    
-    /// <summary>
-    /// Functor "less" for C-style UTF-8 strings.
-    /// </summary>
-    struct CStringUtf8FunctorLess
-    {
-        bool operator()(const char *left, const char *right) const
-        {
-            return strcmp(left, right) < 0;
-        }
-    };
-
 
     ////////////////////////////////////////////////
     // Multi-thread and Synchronization Utilities

@@ -50,6 +50,9 @@
     <ClCompile Include="..\TestShared\main.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
+    <ClCompile Include="tests_utils_string.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />

@@ -221,6 +221,7 @@
     <ClCompile Include="tests_utils_io.cpp" />
     <ClCompile Include="tests_utils_lockfreequeue.cpp" />
     <ClCompile Include="tests_utils_pool.cpp" />
+    <ClCompile Include="tests_utils_string.cpp" />
     <ClCompile Include="tests_xml.cpp" />
   </ItemGroup>
   <ItemGroup>

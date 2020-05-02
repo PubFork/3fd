@@ -35,5 +35,6 @@
     <ClCompile Include="utils_sharedmutex.cpp" />
     <ClCompile Include="utils_winrt.cpp" />
     <ClCompile Include="xml.cpp" />
+    <ClCompile Include="utils_string.cpp" />
   </ItemGroup>
 </Project>

@@ -49,6 +49,9 @@
     <ClCompile Include="..\..\TestShared\main.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\tests_utils_string.cpp">
+      <Filter>Ported</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\LockScreenLogo.scale-200.png">
@@ -78,11 +81,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="UnitTestsApp_TemporaryKey.pfx" />
-    <None Include="a2e1e6a8-499e-45a2-b51c-c26d343dbae3.3fd.config" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\pch.h">
       <Filter>pch</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="a2e1e6a8-499e-45a2-b51c-c26d343dbae3.3fd.config" />
   </ItemGroup>
 </Project>
