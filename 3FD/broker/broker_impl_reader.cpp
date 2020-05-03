@@ -1,9 +1,15 @@
+//
+// Copyright (c) 2020 Part of 3FD project (https://github.com/faburaya/3fd)
+// It is FREELY distributed by the author under the Microsoft Public License
+// and the observance that it should only be used for the benefit of mankind.
+//
 #include "pch.h"
 #include "broker_impl.h"
 #include <3fd/core/callstacktracer.h>
 #include <3fd/core/exceptions.h>
 #include <3fd/core/logger.h>
 #include <3fd/utils/utils_io.h>
+#include <3fd/utils/utils_string.h>
 
 #include <chrono>
 #include <sstream>
@@ -18,7 +24,7 @@ namespace broker {
     /// </summary>
     /// <param name="svcBrokerBackend">The broker backend to use.</param>
     /// <param name="connString">The backend connection string.</param>
-    /// <param name="serviceURL">The service URL.</param>
+    /// <param name="utils::to_ucs2(serviceURL)">The service URL.</param>
     /// <param name="msgTypeSpec">The specification for creation of message type.
     /// Such type is createad in the backend at the first time a reader or writer
     /// for this queue is instantiated. Subsequent instantiations will not effectively
@@ -37,11 +43,9 @@ namespace broker {
         
         m_dbSession = dbg_new DatabaseSession(connString);
 
-        using Text = utils::TextPlaceholderReplacementHelper;
-
         // Create message type, contract, queue, service and message content data type:
         nanodbc::just_execute(m_dbSession->GetConnection(),
-            Text::in('%', R"(
+            utils::TextUcs2::in(L'%', LR"(
                 if not exists ( select * from sys.service_queues where name = N'%service/v1_0_0/Queue' )
                 begin
                     create message type [%service/v1_0_0/Message] validation = %validation;
@@ -58,23 +62,23 @@ namespace broker {
                     create type [%service/v1_0_0/Message/ContentType] from varchar(%nbytes);
                 end;
             )")
-            .Replace("service", serviceURL)
-            .Replace("validation", ToString(msgTypeSpec.contentValidation))
-            .Use("nbytes", msgTypeSpec.nBytes)
+            .Replace(L"service", utils::to_ucs2(serviceURL))
+            .Replace(L"validation", ToString(msgTypeSpec.contentValidation))
+            .Use(L"nbytes", msgTypeSpec.nBytes)
             .Emit()
         );
 
         // Create stored procedure to read messages from queue:
 
         auto result = nanodbc::execute(m_dbSession->GetConnection(),
-            Text::in('%', "select object_id(N'%service/v1_0_0/ReadMessagesProc', N'P');")
-                .Replace("service", serviceURL)
+            utils::TextUcs2::in(L'%', L"select object_id(N'%service/v1_0_0/ReadMessagesProc', N'P');")
+                .Replace(L"service", utils::to_ucs2(serviceURL))
                 .Emit()
         );
 
         if (!result.next())
         {
-            nanodbc::just_execute(m_dbSession->GetConnection(), Text::in('%', R"(
+            nanodbc::just_execute(m_dbSession->GetConnection(), utils::TextUcs2::in(L'%', LR"(
                 create procedure [%service/v1_0_0/ReadMessagesProc] (
                     @recvMsgCountLimit int
                     ,@recvTimeoutMilisecs int
@@ -164,7 +168,7 @@ namespace broker {
 
                 end catch;
             )")
-            .Replace("service", serviceURL)
+            .Replace(L"service", utils::to_ucs2(serviceURL))
             .Emit());
         }
 
@@ -216,7 +220,7 @@ namespace broker {
         /// <param name="msgCountStepLimit">How many messages are to be
         /// retrieved at most at each asynchronous execution step.</param>
         /// <param name="msgRecvTimeout">The timeout (in ms) when the backend awaits for messages.</param>
-        /// <param name="serviceURL">The service URL.</param>
+        /// <param name="utils::to_ucs2(serviceURL)">The service URL.</param>
         AsyncReadImpl(DatabaseSession &dbSession,
                       uint16_t msgCountStepLimit,
                       uint16_t msgRecvTimeout,
@@ -227,10 +231,10 @@ namespace broker {
 
             try
             {
-                std::array<char, 256> buffer;
+                std::array<wchar_t, 256> buffer;
                 size_t length = utils::SerializeTo(buffer,
-                                                   "exec [", serviceURL, "/v1_0_0/ReadMessagesProc] ",
-                                                   msgCountStepLimit, ", ", msgRecvTimeout, ";");
+                                                   L"exec [", serviceURL, L"/v1_0_0/ReadMessagesProc] ",
+                                                   msgCountStepLimit, L", ", msgRecvTimeout, L";");
 
                 m_stoProcExecStmt = nanodbc::statement(
                     dbSession.GetConnection(),

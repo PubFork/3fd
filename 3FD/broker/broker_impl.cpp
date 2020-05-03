@@ -1,8 +1,14 @@
+//
+// Copyright (c) 2020 Part of 3FD project (https://github.com/faburaya/3fd)
+// It is FREELY distributed by the author under the Microsoft Public License
+// and the observance that it should only be used for the benefit of mankind.
+//
 #include "pch.h"
 #include "broker_impl.h"
 #include <3fd/core/configuration.h>
 #include <3fd/core/logger.h>
 #include <3fd/utils/utils_io.h>
+#include <3fd/utils/utils_string.h>
 
 namespace _3fd {
 namespace broker {
@@ -76,15 +82,15 @@ namespace broker {
     /// </summary>
     /// <param name="backend">The backend option.</param>
     /// <returns>A label for the backend.</returns>
-    const char *ToString(Backend backend)
+    const wchar_t *ToString(Backend backend)
     {
         switch (backend)
         {
         case Backend::MsSqlServer:
-            return "Microsoft SQL Server";
+            return L"Microsoft SQL Server";
         default:
             _ASSERTE(false);
-            return "UNKNOWN";
+            return L"UNKNOWN";
         }
     }
 
@@ -93,17 +99,17 @@ namespace broker {
     /// </summary>
     /// <param name="msgContentValidation">What validation to use in message content.</param>
     /// <returns>A label as expected by T-SQL.</returns>
-    const char *ToString(MessageContentValidation msgContentValidation)
+    const wchar_t *ToString(MessageContentValidation msgContentValidation)
     {
         switch (msgContentValidation)
         {
         case MessageContentValidation::None:
-            return "NONE";
+            return L"NONE";
         case MessageContentValidation::WellFormedXml:
-            return "WELL_FORMED_XML";
+            return L"WELL_FORMED_XML";
         default:
             _ASSERTE(false);
-            return "UNKNOWN";
+            return L"UNKNOWN";
         }
     }
 
@@ -130,7 +136,7 @@ namespace broker {
                 static const auto timeout =
                     core::AppConfig::GetSettings().framework.broker.dbConnTimeoutSecs;
 
-                m_dbConnection = nanodbc::connection(connString, timeout);
+                m_dbConnection = nanodbc::connection(utils::to_ucs2(connString), timeout);
             }
             catch (nanodbc::database_error &)
             {
@@ -182,7 +188,7 @@ namespace broker {
                 static const auto timeout =
                     core::AppConfig::GetSettings().framework.broker.dbConnTimeoutSecs;
 
-                m_dbConnection.connect(m_connectionString, timeout);
+                m_dbConnection.connect(utils::to_ucs2(m_connectionString), timeout);
 
                 std::array<char, 512> bufErrMsg;
 

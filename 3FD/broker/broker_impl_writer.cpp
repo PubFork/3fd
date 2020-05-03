@@ -1,9 +1,15 @@
+//
+// Copyright (c) 2020 Part of 3FD project (https://github.com/faburaya/3fd)
+// It is FREELY distributed by the author under the Microsoft Public License
+// and the observance that it should only be used for the benefit of mankind.
+//
 #include "pch.h"
 #include "broker_impl.h"
 #include <3fd/core/callstacktracer.h>
 #include <3fd/core/exceptions.h>
 #include <3fd/core/logger.h>
 #include <3fd/utils/utils_io.h>
+#include <3fd/utils/utils_string.h>
 
 #include <future>
 #include <sstream>
@@ -37,11 +43,9 @@ namespace broker {
 
         m_dbSession = dbg_new DatabaseSession(connString);
 
-        using Text = utils::TextPlaceholderReplacementHelper;
-
         // Create message type, contract, queue, service, message content data type and input stage table:
         nanodbc::just_execute(m_dbSession->GetConnection(),
-            Text::in('%', R"(
+            utils::TextUcs2::in(L'%', LR"(
                 if not exists ( select * from sys.service_queues where name = N'%service/v1_0_0/Queue' )
                 begin
                     create message type [%service/v1_0_0/Message] validation = %validation;
@@ -72,22 +76,22 @@ namespace broker {
                     create table [%service/v1_0_0/InputStageTable] (content [%service/v1_0_0/Message/ContentType]);
                 end;
             )")
-            .Replace("service", serviceURL)
-            .Replace("validation", ToString(msgTypeSpec.contentValidation))
-            .Use("nbytes", msgTypeSpec.nBytes)
+            .Replace(L"service", utils::to_ucs2(serviceURL))
+            .Replace(L"validation", ToString(msgTypeSpec.contentValidation))
+            .Use(L"nbytes", msgTypeSpec.nBytes)
             .Emit()
         );
 
         // Create stored procedure to send messages to service queue:
         auto result = nanodbc::execute(m_dbSession->GetConnection(),
-            Text::in('%', "select object_id(N'%service/v1_0_0/SendMessagesProc', N'P');")
-                .Replace("service", serviceURL)
+            utils::TextUcs2::in(L'%', L"select object_id(N'%service/v1_0_0/SendMessagesProc', N'P');")
+                .Replace(L"service", utils::to_ucs2(serviceURL))
                 .Emit()
         );
 
         if (!result.next())
         {
-            nanodbc::just_execute(m_dbSession->GetConnection(), Text::in('%', R"(
+            nanodbc::just_execute(m_dbSession->GetConnection(), utils::TextUcs2::in(L'%', LR"(
                 create procedure [%service/v1_0_0/SendMessagesProc] as
                 begin try
                     begin transaction;
@@ -132,20 +136,20 @@ namespace broker {
 
                 end catch;
             )")
-            .Replace("service", serviceURL)
+            .Replace(L"service", utils::to_ucs2(serviceURL))
             .Emit());
         }
 
         // Create stored procedure to finish conversations in the initiator endpoint:
         result = nanodbc::execute(m_dbSession->GetConnection(),
-            Text::in('%', "select object_id(N'%service/v1_0_0/FinishDialogsOnEndptInitProc', N'P');")
-                .Replace("service", serviceURL)
+            utils::TextUcs2::in(L'%', L"select object_id(N'%service/v1_0_0/FinishDialogsOnEndptInitProc', N'P');")
+                .Replace(L"service", utils::to_ucs2(serviceURL))
                 .Emit()
         );
 
         if (!result.next())
         {
-            nanodbc::just_execute(m_dbSession->GetConnection(), Text::in('%', R"(
+            nanodbc::just_execute(m_dbSession->GetConnection(), utils::TextUcs2::in(L'%', LR"(
                 create procedure [%service/v1_0_0/FinishDialogsOnEndptInitProc] as
                 begin try
                     begin transaction;
@@ -202,7 +206,7 @@ namespace broker {
                         execute as owner
                     );
             )")
-            .Replace("service", serviceURL)
+            .Replace(L"service", utils::to_ucs2(serviceURL))
             .Emit());
         }
 
@@ -251,9 +255,9 @@ namespace broker {
 
             try
             {
-                std::array<char, 256> buffer;
+                std::array<wchar_t, 256> buffer;
                 size_t length = utils::SerializeTo(buffer,
-                    "insert into [", serviceURL, "/v1_0_0/InputStageTable] (content) values (?);");
+                    L"insert into [", serviceURL, L"/v1_0_0/InputStageTable] (content) values (?);");
 
                 auto stageInsertStatement =
                     std::make_shared<nanodbc::statement>(m_transaction.GetConnection(),
@@ -264,7 +268,7 @@ namespace broker {
                 const size_t batchSize = messages.size();
 
                 length = utils::SerializeTo(buffer,
-                                            "exec [", serviceURL, "/v1_0_0/SendMessagesProc];");
+                                            L"exec [", serviceURL, L"/v1_0_0/SendMessagesProc];");
 
                 auto stoProcStatement =
                     std::make_shared<nanodbc::statement>(m_transaction.GetConnection(),
