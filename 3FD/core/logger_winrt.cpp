@@ -29,6 +29,7 @@ namespace core
         using WinRT_StorageFile = winrt::Windows::Storage::StorageFile;
 
         WinRT_StorageFile m_logFile;
+        std::ofstream m_fileStream;
 
         static void OpenStreamImpl(const WinRT_StorageFile &logFile, std::ofstream &ofs)
         {
@@ -40,20 +41,28 @@ namespace core
     public:
 
         WinRtFileAccess(WinRT_StorageFile &logFile)
-            : m_logFile(logFile) {}
-
-        void OpenStream(std::ofstream &ofs) override
+            : m_logFile(logFile)
         {
-            OpenStreamImpl(m_logFile, ofs);
+            OpenStreamImpl(m_logFile, m_fileStream);
         }
 
-        void ShiftToNewLogFile(std::ofstream &ofs) override
+        std::ostream &GetStream() override
+        {
+            return m_fileStream;
+        }
+
+        bool HasError() const override
+        {
+            return m_fileStream.bad();
+        }
+
+        void ShiftToNewLogFile() override
         {
             using namespace std::chrono;
             using namespace winrt::Windows::Storage;
             using namespace winrt::Windows::Foundation;
 
-            ofs.close(); // first close the stream to the current log file
+            m_fileStream.close(); // first close the stream to the current log file
 
             // Rename the current log file:
             winrt::hstring currLogFileName = m_logFile.Name();
@@ -65,7 +74,7 @@ namespace core
             // Create a new log file:
             m_logFile = ApplicationData::Current().LocalFolder().CreateFileAsync(currLogFileName).get();
 
-            OpenStreamImpl(m_logFile, ofs);
+            OpenStreamImpl(m_logFile, m_fileStream);
 
             // Create the file which will contain the previous log (compressed):
             auto now = system_clock::to_time_t(system_clock::now());
@@ -95,7 +104,7 @@ namespace core
 
             // Write log shift event in the new log:
             now = system_clock::to_time_t(system_clock::now());
-            PrepareEventString(ofs, now, Logger::PRIO_NOTICE)
+            PrepareEventString(m_fileStream, now, Logger::PRIO_NOTICE)
                 << L"The log file has been shifted. The previous file has been compressed from "
                 << readBuffer.Length() / 1024 << L" to " << outputStream.Size() / 1024
                 << L" KB and moved to the app temporary data store." << std::endl << std::flush;

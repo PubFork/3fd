@@ -6,7 +6,7 @@
 #include <3fd/utils/utils_lockfreequeue.h>
 
 #include <cinttypes>
-#include <fstream>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -30,21 +30,29 @@ namespace core
         virtual ~ILogFileAccess() = default;
 
         /// <summary>
-        /// Opens the log file stream for writing (append).
+        /// Gets the output stream.
         /// </summary>
-        /// <param name="ofs">The file output stream.</param>
-        virtual void OpenStream(std::ofstream &ofs) = 0;
+        virtual std::ostream &GetStream() = 0;
+
+        /// <summary>
+        /// Tells whether the stream is in a bad state.
+        /// </summary>
+        virtual bool HasError() const = 0;
 
         /// <summary>
         /// Switches log stream to a new file.
         /// </summary>
         /// <param name="ofs">Will receive an output stream to the new file.</param>
-        virtual void ShiftToNewLogFile(std::ofstream &ofs) = 0;
+        virtual void ShiftToNewLogFile() = 0;
 
         virtual uint64_t GetFileSize() const = 0;
     };
 
     std::unique_ptr<ILogFileAccess> GetFileAccess(const string &loggerId);
+
+#ifdef _3FD_CONSOLE_AVAILABLE
+    std::unique_ptr<ILogFileAccess> GetConsoleAccess();
+#endif
 
     /// <summary>
     /// Implements a logging facility.

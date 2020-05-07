@@ -18,7 +18,6 @@
 #include <chrono>
 #include <ctime>
 #include <future>
-#include <iostream>
 #include <stack>
 
 namespace _3fd
@@ -50,7 +49,7 @@ namespace core
     /// <param name="timestamp">The event timestamp.</param>
     /// <param name="prio">The event priority.</param>
     /// <returns>A reference to the string stream output.</returns>
-    std::ofstream &PrepareEventString(std::ofstream &ofs, time_t timestamp, Logger::Priority prio)
+    std::ostream &PrepareEventString(std::ostream &ofs, time_t timestamp, Logger::Priority prio)
     {
 #ifdef _WIN32
         static const auto pid = GetCurrentProcessId();
@@ -190,9 +189,14 @@ namespace core
     /// Initializes a new instance of the <see cref="Logger"/> class.
     /// </summary>
     /// <param name="id">The application ID.</param>
-    /// <param name="logToConsole">Whether log output should be redirected to the console. Because a store app does not have an available console, this parameter is ignored.</param>
+    /// <param name="logToConsole">Whether log output should be redirected to the console.
+    /// Because a store app does not have an available console, this parameter is ignored.</param>
     Logger::Logger(const string &id, bool logToConsole)
+#ifdef _3FD_CONSOLE_AVAILABLE
+        : m_fileAccess(logToConsole ? GetConsoleAccess() : GetFileAccess(id))
+#else
         : m_fileAccess(GetFileAccess(id))
+#endif
 #ifdef NDEBUG
         , m_prioThreshold(PRIO_INFORMATION)
 #else
@@ -386,9 +390,6 @@ namespace core
     {
         try
         {
-            std::ofstream ofs;
-            m_fileAccess->OpenStream(ofs);
-
             bool terminate(false);
 
             do
@@ -402,18 +403,19 @@ namespace core
                 {
                     std::unique_ptr<LogEvent> ev(m_eventsQueue.Remove());
 
-                    PrepareEventString(ofs, ev->time, ev->prio) << ev->what; // add the main details and message
+                    // add the main details and message
+                    PrepareEventString(m_fileAccess->GetStream(), ev->time, ev->prio) << ev->what;
 #   ifdef ENABLE_3FD_ERR_IMPL_DETAILS
                     if (ev->details.empty() == false) // add the details
-                        ofs << " - " << ev->details;
+                        m_fileAccess->GetStream() << " - " << ev->details;
 #   endif
 #   ifdef ENABLE_3FD_CST
                     if (ev->trace.empty() == false) // add the call stack trace
-                        ofs << "### CALL STACK ###\n" << ev->trace;
+                        m_fileAccess->GetStream() << "### CALL STACK ###\n" << ev->trace;
 #   endif
-                    ofs << std::endl << std::flush; // flush the content to the file
+                    m_fileAccess->GetStream() << std::endl << std::flush; // flush the content to the file
 
-                    if (ofs.bad())
+                    if (m_fileAccess->HasError())
                         throw AppException<std::runtime_error>("Failed to write in the log output file stream");
 
                     --estimateRoomForLogEvents;
@@ -426,7 +428,7 @@ namespace core
                     estimateRoomForLogEvents = EstimateRoomForLogEvents(*m_fileAccess);
                     if (estimateRoomForLogEvents < 0)
                     {
-                        m_fileAccess->ShiftToNewLogFile(ofs);
+                        m_fileAccess->ShiftToNewLogFile();
                         estimateRoomForLogEvents = EstimateRoomForLogEvents(*m_fileAccess);
                     }
                 }

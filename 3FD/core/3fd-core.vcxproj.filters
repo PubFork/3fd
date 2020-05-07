@@ -118,6 +118,9 @@
     <ClCompile Include="gc_vertexstore.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="logger_console.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Xml Include="3fd-config-template.xml">

@@ -213,6 +213,7 @@
     <ClCompile Include="gc_vertex.cpp" />
     <ClCompile Include="gc_vertexstore.cpp" />
     <ClCompile Include="logger.cpp" />
+    <ClCompile Include="logger_console.cpp" />
     <ClCompile Include="logger_dsa.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
