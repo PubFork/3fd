@@ -411,7 +411,7 @@ namespace core
 #   endif
 #   ifdef ENABLE_3FD_CST
                     if (ev->trace.empty() == false) // add the call stack trace
-                        m_fileAccess->GetStream() << "### CALL STACK ###\n" << ev->trace;
+                        m_fileAccess->GetStream() << _newLine_ _newLine_ "### CALL STACK TRACE ###" _newLine_ << ev->trace;
 #   endif
                     m_fileAccess->GetStream() << std::endl << std::flush; // flush the content to the file
 
