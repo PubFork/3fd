@@ -91,6 +91,12 @@ namespace broker {
 
         if (!result.next())
         {
+            throw core::AppException<std::runtime_error>(
+                "Could not check presence of stored procedure to write into broker queue!", serviceURL);
+        }
+
+        if (result.is_null(0))
+        {
             nanodbc::just_execute(m_dbSession->GetConnection(), utils::TextUcs2::in(L'%', LR"(
                 create procedure [%service/v1_0_0/SendMessagesProc] as
                 begin try
@@ -148,6 +154,12 @@ namespace broker {
         );
 
         if (!result.next())
+        {
+            throw core::AppException<std::runtime_error>(
+                "Could not check presence of stored procedure for finishing enpoint!", serviceURL);
+        }
+
+        if (result.is_null(0))
         {
             nanodbc::just_execute(m_dbSession->GetConnection(), utils::TextUcs2::in(L'%', LR"(
                 create procedure [%service/v1_0_0/FinishDialogsOnEndptInitProc] as
@@ -211,13 +223,15 @@ namespace broker {
         }
 
         std::ostringstream oss;
-        oss << "Initialized successfully the writer for broker queue '" << serviceURL
-            << "/v1_0_0/Queue' backed by " << ToString(svcBrokerBackend) << " via ODBC";
+        oss << "Initialized successfully the writer for broker queue '"
+            << serviceURL << "/v1_0_0/Queue' backed by "
+            << utils::to_utf8(ToString(svcBrokerBackend)) << " via ODBC";
 
         core::Logger::Write(oss.str(), core::Logger::PRIO_INFORMATION);
     }
     catch (...)
     {
+        CALL_STACK_TRACE;
         delete m_dbSession;
         HandleException("creating writer for broker queue");
     }

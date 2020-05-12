@@ -127,7 +127,7 @@ namespace broker {
     DatabaseSession::DatabaseSession(const string &connString)
         : m_connectionString(connString)
     {
-        uint32_t retryCount(0);
+        uint32_t retryCount(1);
 
         while (true)
         {
@@ -137,14 +137,23 @@ namespace broker {
                     core::AppConfig::GetSettings().framework.broker.dbConnTimeoutSecs;
 
                 m_dbConnection = nanodbc::connection(utils::to_ucs2(connString), timeout);
+                break;
             }
             catch (nanodbc::database_error &)
             {
                 static const auto maxRetries =
                     core::AppConfig::GetSettings().framework.broker.dbConnMaxRetries;
 
-                if (retryCount >= maxRetries)
+                if (retryCount > maxRetries)
                     throw;
+
+                std::array<char, 512> bufErrMsg;
+                utils::SerializeTo(bufErrMsg,
+                                   "Could not connect to broker queue in database '(",
+                                   m_dbConnection.database_name(), ")\\", m_dbConnection.dbms_name(),
+                                   "' - Attempt ", retryCount, " of ", maxRetries);
+
+                core::Logger::Write(bufErrMsg.data(), core::Logger::PRIO_WARNING);
             }
 
             ++retryCount;
@@ -175,7 +184,7 @@ namespace broker {
             utils::SerializeTo(bufErrMsg,
                 "Lost connection to broker queue in database '(",
                 m_dbConnection.database_name(),")\\", m_dbConnection.dbms_name(),
-                "' - Client will attempt reconnection up to ", maxRetries, " time(s)");
+                "' - Attempt ", retryCount, " of ", maxRetries);
 
             core::Logger::Write(bufErrMsg.data(), core::Logger::PRIO_WARNING);
         }

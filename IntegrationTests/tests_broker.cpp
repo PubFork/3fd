@@ -230,7 +230,8 @@ namespace integration_tests
 
                 selectedMessages.insert(selectedMessages.end(), stepRes.begin(), stepRes.end());
 
-                readOp2->StepNext();
+                if (stepRes.size() == numMessagesPerStep)
+                    readOp2->StepNext();
             }
 
             EXPECT_EQ(insertedMessages.size(), selectedMessages.size());

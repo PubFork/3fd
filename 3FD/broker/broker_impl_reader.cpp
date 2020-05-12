@@ -78,6 +78,12 @@ namespace broker {
 
         if (!result.next())
         {
+            throw core::AppException<std::runtime_error>(
+                "Could not check presence of stored procedure to read from broker queue!", serviceURL);
+        }
+        
+        if (result.is_null(0))
+        {
             nanodbc::just_execute(m_dbSession->GetConnection(), utils::TextUcs2::in(L'%', LR"(
                 create procedure [%service/v1_0_0/ReadMessagesProc] (
                     @recvMsgCountLimit int
@@ -173,13 +179,15 @@ namespace broker {
         }
 
         std::ostringstream oss;
-        oss << "Initialized successfully the reader for broker queue '" << serviceURL
-            << "/v1_0_0/Queue' backed by " << ToString(svcBrokerBackend) << " via ODBC";
+        oss << "Initialized successfully the reader for broker queue '"
+            << serviceURL << "/v1_0_0/Queue' backed by "
+            << utils::to_utf8(ToString(svcBrokerBackend)) << " via ODBC";
 
         core::Logger::Write(oss.str(), core::Logger::PRIO_INFORMATION);
     }
     catch (...)
     {
+        CALL_STACK_TRACE;
         delete m_dbSession;
         HandleException("creating reader for broker queue");
     }
